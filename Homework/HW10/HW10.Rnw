@@ -1,0 +1,217 @@
+\documentclass{article}
+
+  %% LaTeX margin settings:
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+\setlength{\maxwidth}{6.5in}
+
+\newcommand{\R}{{\sf R}}
+\newcommand{\bfbeta}{\mbox{\boldmath $\beta$}}
+\newcommand{\bfep}{\mbox{\boldmath $\epsilon$}}
+\newcommand{\bfD}{\mbox{\boldmath $D$}}
+\newcommand{\bfL}{\mbox{\boldmath $L$}}
+\newcommand{\bfR}{\mbox{\boldmath $R$}}
+\newcommand{\bfmu}{\mbox{\boldmath $\mu$}}
+\newcommand{\bfV}{\mbox{\boldmath $V$}}
+\newcommand{\bfX}{\mbox{\boldmath $X$}}
+
+\newcommand{\bfy}{\mbox{\boldmath $y$}}
+\newcommand{\bfz}{\mbox{\boldmath $z$}}
+\newcommand{\bfSig}{\mbox{\boldmath $\Sigma$}}
+\newcommand{\tr}{^{\sf T}}
+\newcommand{\inv}{^{-1}}
+
+\usepackage{float}
+
+\begin{document}
+
+<<setup, include=FALSE, cache=FALSE>>=
+opts_chunk$set(fig.width=5, fig.height=4, out.width='\\linewidth', dev='pdf', concordance=TRUE, size='footnotesize')
+options(replace.assign=TRUE,width=72, digits = 3, 
+        show.signif.stars = FALSE)
+@
+%% replace = with <-
+%% R output can go to 112 characters per line before wrapping
+%% print 3 significant digits
+
+
+\large
+\begin{center}
+{\Large \bf  Stat 505 Assignment 10 \vspace{.2in}} \\ 
+{\it Leslie Gains-Germain}
+
+\end{center}
+November 11, 2014
+\begin{enumerate}
+\item Build a model to predict credit card use from the other variables using multinomial logistic regression.
+
+{\it First, I looked at plots of each of the predictor variables and the response. Note that a response of $3$ means that the person reported regular credit card use. Credit card use seemed to increase with income. Single parents and people who buy cigarettes seem to use credit cards less than their respective counterparts. People who buy christmas presents and have bank accounts appear to use credit cards more. People with greater housing security, people who have more favorable attitudes towards debt, and people with higher scores on the locus of control scale appear to use credit cards more. }
+
+<<data, echo=FALSE, message=FALSE, warning=FALSE,fig.width=12>>=
+require(faraway)
+data(debt)
+debt <- subset(debt,ccarduse!="NA")
+debt$children <- as.factor(debt$children)
+debt$ccarduse <- as.factor(debt$ccarduse)
+debt$incomegp <- as.factor(debt$incomegp)
+debt$singpar <- as.factor(debt$singpar)
+debt$manage <- as.factor(debt$manage)
+debt$xmasbuy <- as.factor(debt$xmasbuy)
+debt$bankacc <- as.factor(debt$bankacc)
+debt$agegp <- as.factor(debt$agegp)
+debt$cigbuy <- as.factor(debt$cigbuy)
+debt$house <- as.factor(debt$house)
+debt$bsocacc <- as.factor(debt$bsocacc)
+par(mfrow=c(1,4))
+plot(ccarduse~incomegp,data=debt, main="Credit Card Use vs. Income Group")
+plot(ccarduse~children,data=debt, main="Credit Card Use vs. No. Children") 
+plot(ccarduse~singpar,data=debt,main="Credit Card Use vs. Single Parent")
+plot(ccarduse~manage,data=debt,main="Credit Card Use vs. Money Management Skills")
+par(mfrow=c(1,4))
+plot(ccarduse~cigbuy,data=debt, main="Credit Card Use vs. Cigarette Buy")
+plot(ccarduse~xmasbuy,data=debt, main="Credit Card Use vs. Xmas Present Buy")
+plot(ccarduse~bankacc,data=debt, main="Credit Card Use vs. Bank Account")
+plot(ccarduse~agegp,data=debt,main="Credit Card Use vs. Age Group")
+par(mfrow=c(1,2))
+plot(ccarduse~house,data=debt, main="Credit Card Use vs Housing Security")
+plot(ccarduse~bsocacc,data=debt, main="Credit Card Use vs Building Society Acct")
+
+require(ggplot2)
+qplot(prodebt,ccarduse,data=debt,position = position_jitter(h = 0.1))
+qplot(locintrn,ccarduse,data=debt,position = position_jitter(h=0.1))
+@
+
+<<model, echo=FALSE,message=FALSE, results='asis'>>=
+require(arm)
+require(glmulti)
+#obj <- glmulti(ccarduse ~ incomegp+house+children+singpar+agegp+bankacc+bsocacc+cigbuy+manage+xmasbuy+locintrn+prodebt, data = debt, fitfunc = bayespolr, level=2)
+cc.fit <- polr(ccarduse~incomegp+cigbuy+bankacc+locintrn+prodebt+xmasbuy+bsocacc,data=debt)
+require(xtable)
+display.xtable <- function(lmobj){
+  sumry <- summary(lmobj)
+  captn <- paste("n = 305", lmobj$df.residual + lmobj$rank,
+                      " rank = 9", lmobj$rank)
+  if(class(lmobj)[1] == "lm")
+      captn <- paste(captn, " resid sd = ", round(sumry$sigma, options()$digits),
+                      " R-Squared = ", round( sumry$r.squared, options()$digits))
+  else if(class(lmobj)[1] == "glm")
+      captn <- paste(captn, " Resid Deviance = ", round(sumry$deviance, options()$digits))
+  xtable(sumry$coef[,1:3, drop=FALSE], caption = captn)
+}
+display.xtable(cc.fit)
+@
+
+{\it I first looked at the plots to get an idea of which variables would be important. I then started looking around in R for a function that would help with the model selection process. I found a function \verb+glmulti+ that actually fits all of the models in the candidate set and does an AIC comparison to choose the best model. I used this function to select an appropriate first order model. I did play around with adding interaction terms to the model, but the first order model seemed to have the lowest AIC. The summary output from my final model is shown above. \\
+
+
+For an increase in income from the lowest income group to next highest income group, the odds of ``regular'' credit card use versus ``sometimes'' or ``never'' credit card use is estimated to change by a factor of $2.53$  given that all other variables are held constant, with a $95\%$ confidence interval from $0.922$ to $7.83$ times. For a person with a bank account, the odds of ``regular'' credit card use versus ``sometimes'' or ``never'' credit card use is estimated to be $8.89$ times greater than for a person without a bank account  given that all other variables are held constant, with a $95\%$ confidence interval from $3.12$ to $32.43$ times greater. For a person who does not buy cigarettes, the odds of ``regular'' credit card use versus ``sometimes'' or ``never'' credit card use is estimated to be $2.48$ times greater than for a person who does buy cigarettes  given that all other variables are held constant, with a $95\%$ confidence interval from $1.42$ to $4.46$ times greater. For a one point increase on the prodebt scale, the odds of ``regular''  credit card use versus ``sometimes'' or ``never'' credit card use is estimated to change by a factor of $1.69$ given that all other variables are held constant, with a $95\%$ confidence interval from $1.20$ to $2.40$ times greater. Below is a table showing the estimated odds ratios and confidence intervals associated with a one unit increase in each of the predictors.
+ } 
+ 
+ 
+<<interpret,echo=FALSE, results='asis', message=FALSE>>=
+xtable(exp(cbind(OR = coef(cc.fit), confint(cc.fit))))
+@
+
+\item \begin{enumerate}
+
+\item {\it A poisson log linear model is appropriate for these data because our responses are counts (the number of claims) per district. I will use the number of policy holders as the offset term in the model so that the fitted values of our model will be $log\left(\frac{No.Claims}{No.PolicyHolders}\right)$. After backtransforming (exponentiating and multiplying by $100$), the interpretation will be in terms of multiplicative changes in the claim rate.}
+
+\item {\it If there is an interaction between age and district, the relationship between age and the proportion of claims depends on district. Maybe some of the districts are better at raising teenagers than others. In these districts, teenagers might be better drivers, and we would see less of an age effect. \\
+
+I still don't totally understand what the group variable is, but I'm going to assume that it is a measure of the size of the engine. \\
+
+If there is an interaction between district and group, the relationship between engine size and the proportion of claims depends on the district. In districts with hilly terrain and snowy weather, I would expect to see a greater reduction in the proportion of claims with increasing engine size, assuming that cars with larger engines are better equipped to handle inclement weather. \\
+
+If there is an interaction between age and group, the relationship between age and the proportion of claims depends on car size. Assuming that young people take advantage of engine power more than older people do, I would expect the difference in the proportion of claims between young and old people to increase with engine size. \\
+
+I went ahead and fit the Poisson regression model with all two way interactions. The output is in the appendix because it is a very large table. I saw a linear relationship between district and the number of claims, so I played around with treating district as a quantitative variable, but in the end I think it is more straightforward for interpretation to treat district as a factor. } \\
+
+\item {\it I compared the model with all two way interactions to the model with only main effects. The output of this test is below. The likelihood ratio test yielded a p-value of $0.6571$, so by the law of parsimony I will choose the first order model for inference. } \\
+
+<<reduce, echo=FALSE, results='asis'>>=
+require(MASS)
+data(Insurance)
+#plot(Claims~District,data=Insurance)
+glm.ins<-glm(Claims~Age+Group+District+Age*Group+Age*District+Group*District,data=Insurance,family=poisson,offset=log(Holders))
+glm.test1<-glm(Claims~Age+Group+District,data=Insurance,family=poisson,offset=log(Holders))
+xtable(anova(glm.test1,glm.ins,test="Chi"))
+xtable(summary(glm.test1))
+@
+
+
+{\it The output for the first order model is above. Among policy holders younger than $25$ in district $1$ who drive cars with engine sizes less than $1$ liter, the claim rate is estimated to be $16.4\%$, with a $95\%$ confidence interval from $15.3\%$ to $17.4\%$. For an increase in age from the youngest group ($<25$) to the next oldest age group ($25-29$) while holding engine size and district constant, the claim rate is estimated to change by a multiplicative factor of $0.674$ with a $95\%$ confidence interval from $0.613$ to $0.744$. For an increase in engine size from the smallest engine ($<1$ litre) to the next largest engine ($1-1.5$litre) while holding age and district constant, the claim rate is estimated to change by a factor of $1.53$ with a $95\%$ confidence interval from $1.40$ to $1.70$. Going from district $1$ to district $4$, the claim rate is estimated to change by a factor of $1.26$ with a $95\%$ confidence interval from $1.12$ to $1.42$. \\
+
+Note that I only interpreted the most notable coefficient estimates here, but the interpretations for the other coefficient estimates are similar. The table below shows all of the backtransformed coefficient estimates with confidence intervals.}
+
+\newpage
+
+<<others, echo=FALSE, results='asis', message=FALSE>>=
+xtable(exp(cbind(estimate = coef(glm.test1), confint(glm.test1))))
+@
+
+
+
+\item {\it I fit a generalized linear model using the quasipoisson argument and the output is below. The dispersion parameter was estimated to be $0.9005$. The overdispersion parameter is less than $1$ which suggests that the data are actually underdispersed. When we use the quasilikelihood approach, the standard errors decrease slightly (they are all just multiplied by the estimate of the overdispersion parameter). Our inferences do not change for any of the regression coefficients. Overall, I found no evidence of overdispersion (p-value=$0.448$ from GOF test statistic=$27.29$ on $27$ df). It is not necessary to use a quasilikelihood approach.}  \\
+
+
+<<quasi,echo=FALSE, message=FALSE, results='asis'>>=
+glm.ins.quasi<-glm(Claims~Age+Group+District,data=Insurance,family=quasipoisson,offset=log(Holders))
+print(xtable(summary(glm.ins.quasi)))
+#1-pchisq(glm.ins$dev, glm.ins$df.resid) #GOF TEST
+@
+
+{\it
+Just for the sake of exploration, I went ahead and fit the negative binomial model. The coefficient estimates are identical and the standard errors increased slightly. Inference about the regression coefficients do not change. I would use poisson log linear regression because it is a simpler method and easier to interpret the results.}
+
+
+<<nb,echo=FALSE,results='asis', message=FALSE>>=
+require(VGAM)
+glm.ins.nb<-glm.nb(Claims~Age+Group+District+offset(log(Holders)),data=Insurance,control=glm.control(maxit=500))
+print(xtable(summary(glm.ins.nb)))
+@
+
+
+
+\end{enumerate}
+
+\end{enumerate}
+
+\newpage
+
+{\bf \Large R Code}
+
+<<data,eval=FALSE>>=
+@
+<<model,eval=FALSE>>=
+@
+<<interpret,eval=FALSE>>=
+@
+<<retable, echo=F,results='asis', out.width="0.5\\linewidth", message=FALSE,warning=FALSE, size='footnotesize'>>=
+display.xtable <- function(lmobj){
+  sumry <- summary(lmobj)
+  captn <- paste("n = ", lmobj$df.residual + lmobj$rank,
+                      " rank = ", lmobj$rank)
+  if(class(lmobj)[1] == "lm")
+      captn <- paste(captn, " resid sd = ", round(sumry$sigma, options()$digits),
+                      " R-Squared = ", round( sumry$r.squared, options()$digits))
+  else if(class(lmobj)[1] == "glm")
+      captn <- paste(captn, " Resid Deviance = ", round(sumry$deviance, options()$digits))
+  xtable(sumry$coef[,1:3, drop=FALSE], caption = captn)
+}
+
+@
+<<reduce,eval=FALSE>>=
+@
+<<quasi,eval=FALSE>>=
+@
+<<nb,eval=FALSE>>=
+@
+<<num2, echo=F, results='asis', out.width="0.5\\linewidth", message=FALSE,warning=FALSE, size='footnotesize'>>=
+print(display.xtable(glm.ins), table.placement = 
+        getOption("xtable.table.placement", "p"))
+@
+
+  \end{document}

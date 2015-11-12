@@ -1,0 +1,34 @@
+\documentclass{article}
+\usepackage{graphicx, verbatim, fancyvrb, setspace,listings}
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+
+\ifdefined\knitrout
+\renewenvironment{knitrout}{\begin{footnotesize}}{\end{footnotesize}}
+ \else
+\fi
+
+<<setup, include=FALSE, cache=FALSE>>=
+opts_chunk$set(fig.width=5, fig.height=4, out.width='.5\\linewidth', dev='pdf', concordance=TRUE)
+@
+
+\begin{document}
+
+<<fishdata>>=
+fish <- read.csv("~/Documents/Stat505/data files/Ruby-RBT.csv", head=TRUE)
+summary(fish[,-8])
+@
+
+<<fishtable, results='asis'>>=
+
+threetables <- with(fish,table(year, site, trip, mark))
+threetables;
+
+@
+
+
+
+\end{document}

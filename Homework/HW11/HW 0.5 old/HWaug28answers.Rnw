@@ -1,0 +1,136 @@
+\documentclass{article}
+
+  %% LaTeX margin settings:
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+
+ %% tell knitr to use smaller font for code chunks
+\ifdefined\knitrout
+\renewenvironment{knitrout}{\begin{footnotesize}}{\end{footnotesize}}
+ \else
+\fi
+
+\begin{document}
+
+<<setup, include=FALSE, cache=FALSE>>=
+# this is equivalent to \SweaveOpts{...}
+opts_chunk$set(fig.width=5, fig.height=4, out.width='\\linewidth', dev='pdf', concordance=TRUE)
+options(replace.assign=TRUE,width=112, digits = 3, max.print="72")
+@
+%% replace = with <-
+%% R output can go to 112 characters per line before wrapping
+%% print 3 significant digits
+%% If I ask to see a big matrix or something, only show 72 lines
+
+\title{Day 2 In-class Assignment}
+
+
+\author{Jim Robison-Cox}
+
+\maketitle  %% create the title
+
+\begin{enumerate}
+\item  What is meant by the term ``recycling'' in R's arithmetic? \\ % end line
+  
+    {\it In arithmetic operations using two vectors of different
+      length, R will recycle the shorter vector, reusing the first
+      elements to fill it out to the same length as the longer
+      vector. }\vspace{.5cm} 
+
+
+  \item  You will soon be starting the first homework.  Where on your
+  computer (or in your math dept account) will the files ( an R
+  script, plots, explanations) reside?  Does
+  your group all agree on this structure?  If not decribe the
+  differences.  \\ % end line
+  
+    {\it I have a folder for classes, subfolder for homework, then
+      assn1. }\vspace{.5cm} 
+
+  \item  On HW1 you should use the \verb|ifelse| function.  Read
+  the help file.  Use it and the ``remainder after division''
+  function \verb|%%| to convert integers 2 through 13 into ``odd''
+  or ``even''.  Show your code and results.
+<<evenOdd>>=
+ ifelse( 2:13 %%2 == 0,"even","odd")
+@ 
+  No special options needed.
+  
+\item  For HW 0.5, you looked at the help on boxplot and made a plot of
+    tooth growth relative to two predictors. Use table to find out how
+    many animals were assigned each supplement at each dosage.  Show
+    your code and output table. 
+
+<<toothTable, results='asis' >>=
+require(xtable)
+xtable(with(ToothGrowth, table(supp,dose)))
+@ 
+
+\item Using the ToothGrowth data again, build a linear model to
+    assess the effects of supplement and dosage on growth.  Show your code
+    and the summary of the model you fit. Interpret the output.  How
+    big are the effects?
+<<toothModel, results='asis'>>=
+xtable(summary(tooth.fit <- lm(len ~ supp*I(dose-.5), ToothGrowth)),digits=3)
+@     
+  {\it  As dosage increases, so does tooth growth for both ascorbic acid
+    and orange juice (OJ) animals.  I used dose as a continuous
+    variable, some of you made it a factor.  At a dose of 0.5 mg the OJ
+    treated group had mean tooth growth of 15.5 mm which was greater
+    by 6.3 mm than the group getting ascorbic acid (VC)
+    ($t_{56} = -4.08$, p-value = 0.0001).  A one mg increase in
+    vitamin C dosage increased growth by 7.8 mm, and the VC group
+    increased even faster at 7.8 + 3.9 = 11.7 mm,
+     a steeper slope ($t_{56}  = 2.3$,  p-value = 0.025)} 
+  
+  
+\item  Show the ``usual'' four diagnostic plots for the above linear
+  model.  Are any problems evident?  Save the plot as a png and as a pdf
+  file in the folder from (or parallel to \#2 above).  What are the
+  dimensions of each of the images?
+<<toothPlots,  fig.width=10>>=
+par(mfrow=c(1,4))
+plot(tooth.fit)
+@      
+  {\it These look pretty good.  I see no reason to worry about
+    non-constant variance or lack of normality.}
+  
+\item
+ The math department server is backed up regularly so that we
+  shouldn't all lose our saved documents.  When did  you last back up your
+  personal computer?  Have you used outside storage like
+  google, dropbox, github, or other?  Explain with regard to how you will
+  keep your work safe for this class.  In particular, if you are using
+  more than one computer, how will you transfer an partially completed
+  HW back and forth? \\ % end line
+  
+    {\it I generally rely on the math server to do this for me and
+      transfer things to/from it using gftp. }\vspace{.5cm}
+  \end{enumerate}
+  
+   
+   {\large\bf R Code Appendix}
+
+   %% comment: you shouldn't need to change this unless you relabel
+   %% the code chunks
+   
+<<evenOdd, echo=TRUE,eval=FALSE>>=
+@   
+<<toothTable, echo=TRUE,eval=FALSE>>=
+@ 
+<<toothModel, echo=TRUE, eval=FALSE>>=
+@ 
+<<toothPlots, echo=TRUE, fig.keep='none'>>=
+@
+You may need an example of reading data into R from a file.
+<<readin>>=
+ fish <- read.csv("http://www.math.montana.edu/~jimrc/classes/stat408/data/Ruby-AllFish.csv", head=T)
+ summary(fish[,-8])
+@ 
+ and you can print the value of an object in text using
+ \verb|\|\verb|Sexpr|\{\}, for example, the estimated standard deviation of
+ tooth growths is \Sexpr{summary(tooth.fit)$sigma}. %$
+\end{document}

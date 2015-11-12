@@ -1,0 +1,381 @@
+\documentclass{article}
+
+  %% LaTeX margin settings:
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+\setlength{\maxwidth}{6.5in}
+
+ %% tell knitr to use smaller font for code chunks
+\ifdefined\knitrout
+\renewenvironment{knitrout}{\begin{footnotesize}}{\end{footnotesize}}
+ \else
+\fi
+\newcommand{\R}{{\sf R}}
+\newcommand{\0}{\mbox{\boldmath $0$}}
+\newcommand{\bfbeta}{\mbox{\boldmath $\beta$}}
+\newcommand{\bfD}{\mbox{\boldmath $D$}}
+\newcommand{\bfI}{\mbox{\boldmath $I$}}
+\newcommand{\bfL}{\mbox{\boldmath $L$}}
+\newcommand{\bfR}{\mbox{\boldmath $R$}}
+\newcommand{\bfmu}{\mbox{\boldmath $\mu$}}
+\newcommand{\bfV}{\mbox{\boldmath $V$}}
+\newcommand{\bfX}{\mbox{\boldmath $X$}}
+
+\newcommand{\bfy}{\mbox{\boldmath $y$}}
+\newcommand{\bfz}{\mbox{\boldmath $z$}}
+\newcommand{\bfSig}{\mbox{\boldmath $\Sigma$}}
+
+
+\begin{document}
+
+<<setup, include=FALSE, cache=FALSE>>=
+opts_chunk$set(fig.width=5, fig.height=4, out.width='\\linewidth', dev='pdf', concordance=TRUE)
+options(replace.assign=TRUE,width=82, digits = 3, max.print="72",
+        show.signif.stars = FALSE)
+@
+%% replace = with <-
+%% R output can go to 112 characters per line before wrapping
+%% print 3 significant digits
+%% If I ask to see a big matrix or something, only show 72 lines
+
+\large
+\begin{center}
+{\Large \bf  Stat 505 Assignment 2 \vspace{.2in}} \\
+Fall 2014 Solutions
+\end{center}
+
+\begin{enumerate}
+  \item          Construct a 4 by 4 variance-covariance matrix showing
+    $\bfR$, $\bfD$, and $\bfV$
+    \begin{enumerate}
+     \item  so that covariances are all 0 and variances are
+       1, 4, 9, 16.
+      $$ \bfD = \left[ \begin{array}[c]{cccc}
+                  1 & 0 & 0 & 0 \\ %% first row
+                  0 & 2 & 0 & 0 \\ %% 2nd row
+                  0 & 0 & 3 & 0 \\ %% 3rd row
+                  0 & 0 & 0 & 4  %% 4th row
+        \end{array} \right],  %% close off matrix
+         \ \ \   % several spaces
+          \bfR = \left[ \begin{array}[c]{cccc}
+                  1 & 0 & 0 & 0 \\ %% first row
+                  0 & 1 & 0 & 0 \\ %% 2nd row
+                  0 & 0 & 1 & 0 \\ %% 3rd row
+                  0 & 0 & 0 & 1  %% 4th row
+        \end{array} \right],  %% close off matrix
+         \ \ \   % several spaces
+         \bfV = \left[ \begin{array}[c]{cccc}
+                  1 & 0 & 0 & 0 \\ %% first row
+                  0 & 4 & 0 & 0 \\ %% 2nd row
+                  0 & 0 & 9 & 0 \\ %% 3rd row
+                  0 & 0 & 0 & 16  %% 4th row
+        \end{array} \right],  %% close off matrix
+         \ \ \   % several spaces
+         $$  % close math display 
+   \item  so that each variance is $\frac 1 4$ and all correlations are .6.
+      $$ \bfD = \left[ \begin{array}[c]{cccc}
+                  \frac{1}{2} & 0 & 0 & 0 \\ %% first row
+                  0 & \frac{1}{2} & 0 & 0 \\ %% 2nd row
+                  0 & 0 & \frac{1}{2} & 0 \\ %% 3rd row
+                  0 & 0 & 0 &  \frac{1}{2}  %% 4th row
+        \end{array} \right],  %% close off matrix
+         \ \ \   % several spaces
+          \bfR = \left[ \begin{array}[c]{cccc}
+                  1 & 0.6 & 0.6 & 0.6 \\ %% first row
+                  0.6 & 1 & 0.6 & 0.6 \\ %% 2nd row
+                  0.6 & 0.6 & 1 & 0.6 \\ %% 3rd row
+                  0.6 & 0.6 & 0.6 & 1  %% 4th row
+        \end{array} \right],  %% close off matrix
+         \ \ \   % several spaces
+         \bfV = \frac{1}{4}\left[ \begin{array}[c]{cccc}
+                   1& .6 & .6 & .6 \\ %% first row
+                  .6 & 1 & .6 & .6 \\ %% 2nd row
+                  .6 & .6 & 1 & .6 \\ %% 3rd row
+                  .6 & .6 & .6 & 1  %% 4th row
+        \end{array} \right]  %% close off matrix
+         \ \ \   % several spaces
+         $$  % close math display 
+
+       \item  so that each variance is 9, neighboring observations have
+      covariance 3, observations 2 steps apart have covariance 1, and
+      the covariance between observations 1 and 4 is $\frac 1 3$.
+      $$ \bfD = \left[ \begin{array}[c]{cccc}
+                  3 & 0 & 0 & 0 \\ %% first row
+                  0 & 3 & 0 & 0 \\ %% 2nd row
+                  0 & 0 & 3 & 0 \\ %% 3rd row
+                  0 & 0 & 0 & 3  %% 4th row
+        \end{array} \right],  %% close off matrix
+         \ \ \   % several spaces
+          \bfR = \left[ \begin{array}[c]{cccc}
+                  1 & \frac{1}3 & \frac{1}9 & \frac{1}{27} \\ %% first row
+                  \frac{1}3 & 1 & \frac{1}3 & \frac{1}9 \\ %% 2nd row
+                  \frac{1}9 & \frac{1}3 & 1 & \frac{1}3 \\ %% 3rd row
+                  \frac{1}{27} & \frac{1}9 & \frac{1}3 & 1  %% 4th row
+        \end{array} \right],  %% close off matrix
+         \ \ \   % several spaces
+         \bfV = \left[ \begin{array}[c]{cccc}
+                  9 & 3 & 1 & \frac 1 3 \\ %% first row
+                  3 & 9 & 3 & 1 \\ %% 2nd row
+                  1 & 3 & 9 & 3 \\ %% 3rd row
+                  \frac 1 3 & 1 & 3 & 9  %% 4th row
+        \end{array} \right]  %% close off matrix
+         \ \ \   % several spaces
+         $$  % close math display 
+    \item  so that correlations are the same as in (c), but variances
+     are $\mu_i^{1.4}$ where the vector of means is 
+     $\bfmu = (2\ 3\ 7\ 6)^T$.
+      $$ \bfD = \left[ \begin{array}[c]{cccc}
+                  2^{.7} & 0 & 0 & 0 \\ %% first row
+                  0 & 3^{.7} & 0 & 0 \\ %% 2nd row
+                  0 & 0 & 7^{.7} & 0 \\ %% 3rd row
+                  0 & 0 & 0 &  6^{.7}  %% 4th row
+        \end{array} \right],  %% close off matrix
+         \ \ \   % several spaces
+          \bfR = \left[ \begin{array}[c]{cccc}
+                  1 & \frac{1}3 & \frac{1}9 & \frac{1}{27} \\ %% first row
+                  \frac{1}3 & 1 & \frac{1}3 & \frac{1}9 \\ %% 2nd row
+                  \frac{1}9 & \frac{1}3 & 1 & \frac{1}3 \\ %% 3rd row
+                  \frac{1}{27} & \frac{1}9 & \frac{1}3 & 1  %% 4th row
+        \end{array} \right],  %% close off matrix
+          \ \ \   % several spaces
+          \bfV = \left[ \begin{array}[c]{cccc}
+  2^{1.4}  & \frac{6^{.7}}{3} & \frac{14^{.7}}{9} &\frac{ 12^{.7}}{27}\\ 
+  \frac{6^{.7}}{3} & 3^{1.4} & \frac{21^{.7}}{3} & \frac{18^{.7}}{9} \\ 
+  \frac{14^{.7}}{9}& \frac{ 21^{.7}}{3} & 7^{1.4} & \frac{ 42^{.7}}{3}\\ 
+ \frac{12^{.7}}{27} & \frac{18^{.7}}{9} & \frac{42^{.7}}{3}  & 6^{1.4}
+         \end{array} \right]  %% close off matrix
+ %%         \ \ \   % several spaces
+          $$  % close math display 
+       \end{enumerate}
+
+<<var3,echo=F,message=F, results='hide'>>=
+ D <- diag(c(2,3,7,6)^.7)
+ R <- matrix( 1/c(1,3,9,27,3,1,3,9,9,3,1,3,27,9,3,1), 4,4)
+ V <- D%*%R%*%D
+require(xtable)
+ xtable(V, digits=3)
+@     
+  \item  Let $\bfz$ be a random vector of 8 with distribution $ MVN_8(\0,4\bfI)$  and
+  let $\bfSig =\left[
+    \begin{array}[c]{cccccccc}
+1 & 1 & 0 & 0 & 1 & 0 & 0 & 1\\
+0 & 1 & 1 & 0 & 1 & 1 & 0 & 0\\
+0 & 0 & 1 & 1 & 0 & 1 & 1 & 0\\
+1 & 0 & 0 & 1 & 0 & 0 & 1 & 1
+    \end{array}\right].$
+  
+    What is the distribution of 
+    $\left[\begin{array}[c]{c}
+          1\\ 3\\ 2\\7
+        \end{array}\right] +\bfSig\bfz$?
+      
+      
+      {\em  multivariate normal: % fill in the blank
+           mean   $=\left[ \begin{array}[c]{c}
+          1\\ 3\\ 2\\7
+        \end{array}\right]$,    % fill in the blank
+          and variance $=\left[
+    \begin{array}[c]{cccc}
+          12 &   8  &   0 &   4\\
+          8  &  16  &   8 &   0\\
+          0  &   8  &  16 &   8\\
+          4  &   0  &   8 &  16
+    \end{array}\right]  (  =4\bfSig\bfSig^T)$. 
+
+<<sigDefn,echo=F,results='hide'>>=
+ sigma <- rbind(c(1 , 1 , 0 , 0 , 1 , 0 , 0 , 0),
+                c(0 , 1 , 1 , 0 , 1 , 1 , 0 , 0),
+                c(0 , 0 , 1 , 1 , 0 , 1 , 1 , 0),
+                c(1 , 0 , 0 , 1 , 0 , 0 , 1 , 1))
+crossprod(sigma) *4
+@ 
+}
+\item  Fill in the blanks.
+  
+<<anovaTable, results='asis', echo=F>>=
+  require(xtable, quietly = TRUE)
+  dfE <-  217
+  dfTrt <- 220-dfE
+  SSTrt <-  20.42
+  MSTrt <-  SSTrt/dfTrt
+  SSE <-  633.56 - SSTrt
+  MSE <-  SSE/dfE
+  Fstat <-  MSTrt/MSE
+ output <- rbind(c(dfTrt,SSTrt,MSTrt,Fstat, 1-pf( Fstat , dfTrt,dfE)),
+                 c(dfE,SSE,MSE,NA,NA),
+                 c(220, 633.56,NA,NA,NA))
+  dimnames(output) <- list(c("Between","Within","Total"),
+                           c("df","SS","MS","F","p-value"))
+xtable(output, digits = c(0,0,2,2,2,4) )
+@ 
+
+    \item  Set up the ANOVA model
+      $$ y_{ij} = \mu + \tau_i + \epsilon_{ij},\ i = 1,\ldots,4, j = 1,2$$
+      in R  with these data:
+<<anovaSetup,echo=F>>=
+y = c(3, 4, 1, 0, 7, 9, 6, 5)
+f = gl(4,2, labels=LETTERS[1:4])
+Xf = model.matrix( y ~ f)
+X =  cbind(1,model.matrix(y ~ f + 0))
+@         
+
+   \begin{enumerate}
+      \item            
+           Fit using \verb|lm(y ~ f)|. Give estimates of all
+           estimable cell means,  explaining how they relate to the
+           output. 
+<<anova1, echo=F, results='asis'>>=
+xtable(lm(y~f))
+@            
+  {\em The first coefficient is $\overline{y}_A = 3.5$ which has expectation
+    $\mu+\tau_1$, then we have adjustments between the mean of the
+    other groups and the mean of group A. For B: $\widehat{\tau_2-\tau_1} =
+    -3$,  C: $\widehat{\tau_3-\tau_1} = 4.5$, and  D: $\widehat{\tau_4-\tau_1}
+    = 2.0$.  The estimated cell means are then 
+     A: 3.5, B: 0.5, C: 8.0, D: 5.5}
+    
+         \item  Do the same using formula  \verb|lm(y ~ f + 0)|.
+<<anova2,echo=F, results='asis'>>=
+xtable(summary(lm(y~f + 0)))
+@   
+  {\em Now we see the estimated cell means directly.  It's as if \R\
+    set the overall $\widehat{\mu} = 0$, and then we are seeing
+    estimates of the $\tau_i$'s under that constraint.}
+  
+         \item  Do the same using  \verb|lm(y ~ X + 0, singular.ok=T)|.
+
+<<anova3,echo=F,results = 'asis'>>=
+print(xtable(lm(y~ X + 0, singular.ok=TRUE)),  table.placement="hbt")
+@     
+
+  {\em In this version, the cell mean for D is taken to be baseline,
+    so the first estimate is  $\widehat{\mu+\tau_4} = 5.5 =
+    \overline{y}_{D}$, and then 
+    we see adjustments the fourth cell mean:   $\widehat{\tau_1 -
+      \tau_4} = - 2.0$,
+     $\widehat{\tau_2 - \tau_4} =-5.0 $, $\widehat{\tau_3-\tau_4} =
+     2.5$.\\
+     The coefficient table moved to the top of the next page.
+    }
+
+         \item  Show that you can obtain the same coefficient
+           estimates as in  (a) by solving the normal  equations
+           $\bfX_f^T\bfX_f\bfbeta = \bfX^T_f\bfy$  (Use \verb|crossprod|
+           and \verb|solve|  functions.)
+<<anova4,echo=FALSE, results='asis'>>=
+beta.hat <-  solve(crossprod(Xf), crossprod(Xf,y))
+  beta.hat2 <-  MASS::ginv(crossprod(X)) %*% crossprod(X,y)
+output <- cbind( coef(lm(y~Xf+0)), beta.hat, Xf[c(1,3,5,7),] %*% beta.hat,
+                X[c(1,3,5,7),] %*% beta.hat2   )
+colnames(output) <- c("Beta.hat (a)","Beta.hat (d)", "Unique Fits (d)",
+                     "Unique Fits (e)"  )
+xtable(output)
+@            
+  {\em These match the coefficient estimates from (a).}%\vspace{1in}
+  
+ \newpage 
+        \item  Use the Moore Penrose inverse to find another solution
+           to the  normal equations for the full $\bfX$ matrix, $
+           \bfX^T\bfX\bfbeta = \bfX^T\bfy$ 
+           Show that estimates  of the cell means are the same. 
+<<anova5,echo=F, results='asis'>>=
+xtable(t(  beta.hat2 <-  MASS::ginv(crossprod(X)) %*% crossprod(X,y)),
+       caption="Coefficient Estimates Differ only in inserted 0",only.contents=TRUE, 
+       include.rownames=FALSE, include.colnames=FALSE)
+out2 <-   X[c(1,3,5,7),] %*% beta.hat2
+##dimnames(out2) <- list(c("meanA","meanB","meanC","meanD"),NULL)
+##xtable( t(out2),floating = "F")
+@ 
+
+        {\it I included the fits in the table for part (d).}
+         \item How do Xf and X differ? \\
+           {\it  Xf is missing the second column of X.  To get the
+             estimates of cell means, we just need to take the unique
+             rows (1,3,5,7) of either and matrix multiply by the
+             estimated coefficient vector. }
+
+
+%% \item  Now suppose we are told that variances differ by
+%%            group:  $\sigma^2_A  = \sigma^2_B =\sigma^2,\ 
+%%             \sigma^2_c  = 9\sigma^2,\  \sigma^2_D = 16\sigma^2$.
+
+%%      \begin{enumerate}
+%%        \item Transform $\bfy$ into $\bfy^*$ having constant variance.
+%%        \item The new $\bfX^*$ matrix is
+%% <<anova6,echo=F,results='asis'>>=
+
+%% L <-  diag(1/c(1,1,1,1,3,3,4,4))
+%% ystar <- L %*% y
+%% xstar <- L %*% Xf
+%% xtable(cbind(ystar,xstar))
+%% @            
+%% \item Use lm to find a solution.
+  
+%% <<anova7,echo=F,results='asis'>>=
+%% print(xtable(lm( ystar ~ xstar + 0, singular.ok=T)),floating=FALSE)
+%% @            
+%% \item Show that we can obtain the same solution from lm if we plug in the original $\bfy$ and $\bfX$ and use the 
+%%   weights = c(...) where weights (...) are proportional to inverse variances.
+  
+%% <<anova8,echo=F,results='asis'>>=
+%% print(xtable(lm( y ~ Xf + 0, singular.ok=T, weights= diag(L)^2)),floating=FALSE)
+%% @
+
+%% \item 
+%% Is this a BLUE estimator of $\bfbeta$? If so, is it unique?
+%%      \end{enumerate}
+%%   {\em  I obtained $\widehat{\bfbeta} = c(2.5,\ 0,\ -2,\ 5.5,\ 4.5)^T$ again.
+%%     %Because the weights are the same within each level of our grouping
+%%     %factor, the estimates are still based on equally weighted averages
+%%     %in each cell. 
+%%     As in OLS (above) there is not a unique estimator unless we
+%%     pick a constraint, like $\widehat{\tau}_1=0$.
+    
+%%     Procedure: create $\bfy^* = \bfL\bfy$ and $\bfX^*_f = \bfL\bfX_f$
+%%     where $\bfL$ is a diagonal matrix with $(1\ 1\ 1\ 1\ \frac{1}3\
+%%     \frac{1}3\ \frac{1}4\ \frac{1}4)$ on the diagonal.  It is a
+%%     Cholesky decomposition of the inverse variance-covariance matrix.
+%%     Plug $\bfy^*$ and $\bfX^*$ into the lm function to get the coefficient
+%%     estimates which are the same because we still estimate each cell
+%%     mean as the sample mean for that group (the two observations in
+%%     the same group get the same weight). However, the residuals for C
+%%     and D shrank toward 0, variance estimate is smaller.  SE's of
+%%     the first two coefficients shrank, while those of the last two got
+%%     larger. 
+  
+%%     This estimate is {\bf not unique}, and any of the alternatives we
+%%     saw above could also be used.  The cell means from any G-M
+%%     estimate will agree, but the coefficient estimates need not
+%%     agree. } 
+     \end{enumerate}
+\end{enumerate}
+
+\begin{center}
+  {\large\bf R Code}
+\end{center}
+
+<<var3, results='asis'>>=
+@ 
+<<sigDefn, results='hide'>>=
+@ 
+<<anovaTable, results='hide'>>=
+@ 
+<<anovaSetup, results='hide'>>=
+@ 
+<<anova1, results='hide'>>=
+@ 
+<<anova2, results='hide'>>=
+@ 
+<<anova3, results='hide'>>=
+@ 
+<<anova4, results='hide'>>=
+@ 
+<<anova5, results='hide', tidy = FALSE>>=
+@ 
+
+
+
+  \end{document}

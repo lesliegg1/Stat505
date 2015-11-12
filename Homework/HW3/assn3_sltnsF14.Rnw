@@ -1,0 +1,325 @@
+\documentclass{article}
+
+  %% LaTeX margin settings:
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+\setlength{\maxwidth}{6.5in}
+
+\newcommand{\R}{{\sf R}}
+\newcommand{\bfbeta}{\mbox{\boldmath $\beta$}}
+\newcommand{\bfD}{\mbox{\boldmath $D$}}
+\newcommand{\bfI}{\mbox{\boldmath $I$}}
+\newcommand{\bfL}{\mbox{\boldmath $L$}}
+\newcommand{\bfR}{\mbox{\boldmath $R$}}
+\newcommand{\bfmu}{\mbox{\boldmath $\mu$}}
+\newcommand{\bfV}{\mbox{\boldmath $V$}}
+\newcommand{\bfX}{\mbox{\boldmath $X$}}
+
+\newcommand{\bfy}{\mbox{\boldmath $y$}}
+\newcommand{\yb}{\mbox{ $\overline{y}$}}
+\newcommand{\bfz}{\mbox{\boldmath $z$}}
+\newcommand{\bfSig}{\mbox{\boldmath $\Sigma$}}
+
+
+\begin{document}
+
+<<setup, include=FALSE, cache=FALSE>>=
+##opts_chunk$set(fig.width=5, fig.height=4, out.width='.6\\linewidth', dev='pdf', concordance=TRUE, size = 'footnotesize')
+options(replace.assign=TRUE,width=72, digits = 3, max.print="72",
+        show.signif.stars = FALSE)
+require(xtable, quietly = TRUE)
+@
+%% replace = with <-
+%% R output can go to 72 characters per line before wrapping
+%% print 3 significant digits
+%% If I ask to see a big matrix or something, only show 72 lines
+
+\large
+\begin{center}
+{\Large \bf  Stat 505 Assignment 3 \vspace{.2in}} \\
+Solutions
+\end{center}
+
+We will use data from a designed experiment in which  rats were
+exposed to one of three chemicals and given one of four
+treatments. The response is their survival time.
+
+\begin{enumerate}
+  \item Use boxplots to view the data at each combination of
+   treatment and chemical. Do there appear to be some interactions?
+     Are spreads similar in each combination? \hfill(4 pts)\\
+     
+<<plot1, echo = FALSE, fig.height = 8, fig.width=6, out.width='.4\\linewidth', fig.keep = 'all'>>=
+survival <- read.csv("http://www.math.montana.edu/~jimrc/classes/stat505/data/ratSurvival.csv")
+par(mfrow=c(2,1), mar=c(2,3,1,1)+.1)
+boxplot(sTime ~ trt*chem, survival, horizontal = TRUE, yaxt="n")
+axis(side=2, at=1:12, paste(LETTERS[1:4], rep(c("I","II","III"),each=4),sep="."),las=2)
+with(survival, interaction.plot(trt, chem, sTime))
+@      
+
+{\it  The spreads vary widely from treatment:B, chemical:II with IQR =
+  0.42 to treatment:A, Chemical III with IQR = 0.20.  Interactions
+  seem to be weak, though lines are not always parallel.  Both drug
+  and treatment appear to have substantial effects on the means.} 
+
+\item  Without fitting a model, build the   matrix $\bfX_1$ for a main
+   effects model using just  the 12
+   unique rows of data, and label each with chemical and
+   treatment.    Give the rank of this matrix. \hfill(3 pts)
+   $$ y_{ijk} = \mu + \alpha_i + \beta_j + \epsilon_{ijk},\ i =
+   1,\ldots,4, j = 1,\ldots,3,\ k = 1,\ldots,4$$  
+<<Xone, echo = FALSE, results = 'asis'>>=
+ Xone <- data.frame(mu = rep(1,12), t1 = rep(1:0, c(1,3)))
+ Xone <- cbind(Xone, t2 = Xone$t1[c(12,1:11)], t3 = Xone$t1[c(11:12,1:10)] , 
+                t4 = Xone$t1[c(10:12,1:9)] ,c1 = rep(1:0, c(4,8)))
+ Xone <- cbind(Xone, c2 = Xone$c1[c(9:12,1:8)],  c3 = Xone$c1[c(5:12,1:4)])
+ rownames(Xone) <- paste("Chem",LETTERS[rep(1:4, 3)],".Trt",
+                          rep(c("I","II","III"),  each = 4), sep = "")
+xtable(Xone, digits = 0)
+@    
+
+  {\it The matrix has 8 columns, but it is only rank
+    \Sexpr{qr(Xone)$rank}. (One for $\mu$, 
+    three for treatment and 2 for chemical).}
+  
+ \item  Again, without fitting, build the additional columns needed
+   for a full interaction model. We'll call this
+   one  $\bfX_2$.  Label each 
+   row and give its rank. Is  
+    $\bfX_1$ contained in the columnspace
+   of  $\bfX_2$?  If not, 
+   demonstrate why not, if so, find a matrix to multiply
+   by  $\bfX_2$  to get   $\bfX_1$. \hfill(3 pts)
+   
+<<Xtwo, echo = FALSE, results = 'asis'>>=
+ Xtwo <- NULL
+ for(j in 6:8){
+   for(i in 2:5){
+          Xtwo <- cbind(Xtwo, Xone[,i] * Xone[,j])
+          }
+      }
+  rownames(Xtwo) <-  rownames(Xone)
+ xtable(Xtwo)
+@    
+
+{\it This matrix has rank 12.  Depending on how you order the
+  interactions, it's either an identity or a permutation of $\bfI$.
+  We can build $\bfX_1$ from these 
+  columns. The vector of all ones is the sum of all these columns,
+  then we sum three columns to get a treatment column, and four
+  columns to get a  chemical vector.  If you ordered columns of $\bfX_2$
+  into an identity, then $\bfX_2 \bfX_1 = \bfX_1$.  Otherwise, it's just a
+  permutation of the rows of $\bfX_1$. 
+  }
+  
+<<X2check, echo = FALSE, results = 'hide'>>=
+Xone <-  as.matrix(Xone)
+Xtwo <-  as.matrix(Xtwo)
+all.equal(Xone, Xtwo %*% Xone)
+bigX <-  cbind(Xone, Xtwo)
+@   
+ 
+  
+ \item  What is the rank of combined matrix $\bfX =
+   [\bfX_1\ \ \bfX_2]$?  \hfill(1 pt)
+   
+   {\it \Sexpr{qr(cbind(Xone,Xtwo))$rank} } %$
+   
+   
+   
+ \item  How many columns must we remove from  $\bfX$ to get a full
+   column rank matrix?  It does matter which columns we remove.
+     Explain at least two choices for removal which still allow
+   us to estimate all cell means, and one which does not work.
+   For the non-working one, what is the rank of the remaining columns? 
+   Explain how this relates to the information in the class notes on p 17 about
+   non-estimable constraints. \hfill(4 pts)
+   
+   {\it I am now using the model: 
+       $$ y_{ijk} = \mu + \alpha_i + \beta_j + + \gamma_{ij} +
+       \epsilon_{ijk},\ i = 1,\ldots,4, j = 1,\ldots,3,\ k =
+       1,\ldots,4$$ 
+        We have to remove 8 columns to get down to a square 12 by 12
+     matrix which could be invertible.  We've seen that we could
+     remove the first 8, because $\bfX_2$ is full column rank.  This
+     would be like constraining $\mu = 0 = \alpha_i = \beta_j$
+     for all $i = 1,2,3,4$ and $j = 1,2,3$. Another possibility is the
+     one SAS chooses to force $\alpha_4= \beta_3  = 0=\gamma_{13} 
+     =\gamma_{23}=\gamma_{33}=\gamma_{43}=\gamma_{41}=\gamma_{42}$.
+     Each of these is an non--estimable parameter, so setting all to 0
+     provides a $\boldmath{K}$ which has rank
+     \Sexpr{qr(bigX[,c(1:4,6,7,9,10,12,13,15,16)])$rank}. %$
+     To find 12 columns of $\bfX$ with rank less than 12, I  looked at
+     it's first 12 columns, and found they only have rank 9.   The 8
+     columns I removed have rank 8, but they are columns for  some of the
+     interactions, and setting them to zero constrains an  estimable function.
+     In removing the last four columns, I set $\gamma_{D3} -
+      \gamma_{D2} +\gamma_{C2} -\gamma_{C3} = 0$, when it really is estimable.
+      $E( \yb_{D3} - \yb_{D2} + \yb_{C2} - \yb_{C3} )= \gamma_{D2}
+        +\gamma_{C2} -\gamma_{C3}$, and that linear combination of cell
+       means is $-0.2025$. }
+     
+
+ \item  Use the Moore-Penrose generalized inverse to estimate cell
+   means (you'll have to scale up to use all the data now). \hfill(3 pts)
+   
+<<MoorePenrose, echo = FALSE, results = 'asis'>>=
+  bigX <-  cbind(1, model.matrix(sTime ~ chem+0,survival),  model.matrix(sTime ~ trt+0,survival), diag(12)[rep(1:12, each = 4),]) 
+  betahat <- cbind( MASS::ginv(crossprod(bigX)) %*% crossprod(bigX, survival$sTime),
+             unlist(dummy.coef(lm(sTime ~ chem * trt, survival))))
+dimnames(betahat) <- list(1:20,c("M-P est","DummyCoef"))
+ xtable(round(t(betahat[1:12,]),2) )
+tbhat <-  round(t(betahat[13:20,]),2)
+ colnames(tbhat) <-  13:20
+ xtable(tbhat)
+@    
+   
+ \item  Demonstrate that this estimate differs from the usual
+   interaction model fit by \verb|lm|, and that cell mean
+   estimates are the same. \hfill(3 pts)
+   
+<<check, echo = FALSE, results = 'hide'>>=
+which(abs(betahat - dbetahat) < .0001)
+summary(fitted(lm(sTime ~ .^2, survival)) - bigX %*% betahat)
+@    
+
+ {\it The coefficient vector from lm is only of length 12, and none of
+   the Moore-Penrose values are zero. To show inequality, I printed
+   them above and used the
+   \verb|which| statement to find all ``dummy'' coefficients which agreed
+   with the M-P estimates to tolerance
+   of .001, and none did.  To show equality, I found all
+   fitted values using both methods, subtracted, and used summary. The
+   differences are all less than  \verb|1.332e-15| which is zero to
+   machine accuracy. }
+
+
+
+\end{enumerate}
+
+\begin{center}
+  {\large\bf Report on Survival of Rats}\\
+  (10 pts)
+\end{center}
+
+  These data are a classic  dataset used by Box and Cox in 1964 to
+  demonstrate their transformation methods.  Box refers to them in
+  some of his design books, and tells us the response time is measured
+  in 10 hour increments.  I've not found which chemicals were used or
+  what the treatments are.
+  
+ In comparing the treatments, I would guess that researchers want to
+ know which treatment combinations kill rats more quickly. I will
+ suppose that they are looking for a quick and humane way to sacrifice
+ rats used in research.  In the
+ original scale, the research question might be, ``Which mean survival
+ times are shortest, and  have smallest variance?'' From the plots
+ above, chemical III provides smallest mean survival times, and
+ generally treatment A is better than treatments B, C, or D.
+ 
+ However, the problem of nonconstant variance we saw in the boxplots
+ also exhibits itself in the residuals, so this is perfect data to
+ illustrate the use of transformations.  Here are two plots of the
+ residuals versus fits which show increasing variance, and the
+ Box--Cox plot which shows that a power of -1, or reciprocal
+ transformation is approximately ideal for making residuals ``normally
+ distributed''. 
+ 
+ 
+ 
+<<boxcox, echo = FALSE, fig.width = 9,fig.height = 4, out.width = '\\linewidth'>>=
+ par(mfrow=c(1,3))
+ rawfit <-  lm(sTime ~ chem * trt, survival)
+ plot(rawfit, which = c(1,3))
+ MASS::boxcox(rawfit, lambda=seq(-2,0,.1))
+@  
+ 
+ Applying this transformation, we get the following ANOVA table, which
+ tells us that there is very strong evidence of a chemical effect and
+ of a treatment effect, but evidence for an interaction is weak.
+  
+<<recipAnova, echo = FALSE, results = 'asis'>>=
+recipFit <-  lm(I(1/sTime) ~ .^2, survival)
+xtable(anova(recipFit))
+@
+
+  In order to simplify the report, I will omit the interaction terms.
+  Due to the nicely balanced nature of these data, that does not change
+  the sums of squares for the main effects, both of which are still
+  quite strong.  The interaction term is combined into the error line,
+  giving it 6 more degrees of freedom.
+   
+<<recip2, echo = FALSE, fig.width = 9,fig.height = 4, out.width = '\\linewidth', results = 'asis'>>=
+survival$rate <- 1/survival$sTime
+recipFit2 <-  lm(rate ~ chem + trt +0, survival)
+coef2 <-  coef(recipFit2)
+par(mfrow=c(1,3))
+plot(recipFit2, which = 1:3)
+xtable(recipFit2)
+@
+
+  The diagnostic plots indicate that the reciprocal transformation has
+  done its job well.  Variance is now stable across the fitted
+  values, and residuals are nicely normal.  (Leverage is not of
+  interest in a designed experiment, so I left off the 4th plot.)
+  
+  
+  Because I have opted for a reciprocal transformation, the question
+  of interest is now ``Do mean rates differ, and if so, which mean
+  rates of death are greatest?''.  The means differ strongly by
+  chemical ($F_{3,42} = 500$, p--value $< .0001$) and by treatment 
+  ( $F_{3,42} = 27.98$, p--value $< .0001$).  To look for the best
+  combination, the
+  coefficient table shows that Treatment A with Chemical III has the
+  greatest mean at 4.69 rats killed in 10 hours (SE = 0.17) and next
+  best is Treatment C with 
+  chemical III which is slightly slower by 0.57 rats per 10 hours (SE
+  of the difference = .20).  The second best chemical is II which
+  reduces mean rate to 3.16 (SE = 0.17) with treatment A.  
+  
+  The ``Sleuth'' recommendations for a stat report say that we should
+  back transform to the original scale.  I think that's not necessary
+  here because rates of death are readily interpretable, but it is
+  easy to do the back transform. An approximate 95\% CI for survival
+  time under treatment A, chemical III is $(\Sexpr{round(10/(coef2[3]
+    + .3488),2)}, \Sexpr{round(10/(coef2[3] - .3488),2)})$ hours.
+  
+  The treatments were applied at random, so we can say that the
+  chemicals and treatments ``caused'' the observed effects.  I would
+  guess that the rats are a convenience sample of available lab rats,
+  which does limit the scope of inference to this sample.  However,
+  chemistry is pretty universal, and what kills one mammal is very
+  likely to kill another in the same way, so I'm open to hearing
+  arguments from experts that would suggest that these inferences
+  are extensible to a larger population of rats.
+
+ 
+ 
+\begin{center}
+  {\large\bf R Code}
+\end{center}
+
+<<plot1, eval = FALSE>>=
+@ 
+<<Xone, eval = FALSE>>=
+@ 
+<<Xtwo, eval = FALSE>>=
+@ 
+<<X2check>>=
+@ 
+<<MoorePenrose, results = 'hide'>>=
+@ 
+<<check, eval = FALSE>>=
+@ 
+<<boxcox, eval = FALSE>>=
+@
+<<recipAnova, eval = FALSE>>=
+@
+<<recip2, eval = FALSE>>=
+@
+
+
+  \end{document}

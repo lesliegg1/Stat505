@@ -1,0 +1,122 @@
+
+\documentclass[12pt]{article}
+\usepackage{graphicx, verbatim, fancyvrb, setspace,listings}
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+
+
+\ifdefined\knitrout
+\renewenvironment{knitrout}{\begin{footnotesize}}{\end{footnotesize}}
+ \else
+\fi
+
+<<setup, include=FALSE, cache=FALSE>>=
+opts_chunk$set(fig.width=5, fig.height=4, out.width='.5\\linewidth', dev='pdf', concordance=TRUE)
+@
+%% replace = with <-
+%% R output can go to 112 characters per line before wrapping
+%% print 3 significant digits
+%% If I ask to see a big matrix or something, only show 72 lines
+
+ \begin{document}
+\begin{center}
+{\Large \bf Stat 505 R Exploration }\vspace{.2in} \\
+\today
+\end{center}
+<<options, echo=F,results='hide'>>=
+options(width=112, digits=3, max.print="72")
+@ 
+
+\begin{enumerate}
+\item  What is meant by the term ``recycling'' in R's arithmetic?? \\ % end line
+  
+    {\it If you try to add a shorter vector to a longer vector, R will make the shorter vector the same length as the longer vector by repeating the first elements of the shorter vector. }\vspace{.5cm}
+
+
+  \item  You will soon be starting the first homework.  Where on your
+  computer (or in your math dept account) will the files ( an R
+  script, plots, explanations) reside?  Does
+  your group all agree on this structure?  If not decribe the
+  differences.  \\ % end line
+  
+    {\it On my personal computer under ../home/leslie/documents/Stat505/assignment. I haven't yet talked with my group about this structure. }\vspace{.5cm}
+
+  \item  On HW1 you should use the \verb|ifelse| function.  Read
+  the help file.  Use it and the ``remainder after division''
+  function \verb|%%| to convert integers 2 through 13 into ``odd''
+  or ``even''.  Show your code and results.
+<<chunk1>>=
+x<-seq(1:13)
+ifelse(x %%2 == 0, "even", "odd")
+## place R code here. It will create the output
+@ 
+  
+\item  For HW 0.5, you looked at the help on boxplot and made a plot of
+    tooth growth relative to two predictors. Use table to find out how
+    many animals were assigned each supplement at each dosage.  Show
+    your code and output table. 
+<<toothTable, results="asis">>= 
+require(xtable)
+xtable(table(ToothGrowth$dose, ToothGrowth$supp))
+@ 
+  %% if you want to get a nice latex table, use option: result=tex and
+  %% in the code put 
+  %% require(xtable) 
+  %% and then wrap xtable() around the table.
+
+\item Using the ToothGrowth data again, build a linear model to
+    assess the effects of supplement and dosage on growth.  Show your code
+    and the summary of the model you fit. Interpret the output.  How
+    big are the effects?
+
+<<toothModel, results='asis'>>=
+##(tooth.regress1<-lm(len~supp*dose, ToothGrowth))
+tooth.regress2 <- lm(len ~ supp*factor(dose), data= ToothGrowth)
+require(xtable)
+xtable(summary(tooth.regress2))
+## fit a linear model, get summary and plots
+@     
+  {\it I chose to treat dose as a categorical variable because dose and tooth length didn't show a linear relationship for both supplements. The mean tooth growth for orange juice at a dose of 0.5 mg was 13.23 mm. At the same dosage, the mean tooth growth for ascorbic acid was 5.25 mm less, or 7.98 mm. At a dosage of 2 mg, the mean tooth growth for orange juice was 12.83 mg larger than the 0.5 mg dose. The mean tooth growth for ascorbic acid at a 2 mg dose was 18.16 mg larger than the growth for the 0.5 mg dose. We can see that the increase in tooth growth for increasing dose size is larger in the ascorbic acid case.}
+  
+  
+\item  Show the ``usual'' four diagnostic plots for the above linear
+  model.  Are any problems evident?  Save the plot as a png and as a pdf
+  file in the folder from (or parallel to \#2 above).  
+<<toothPlots,  fig.width=10, out.width='\\linewidth'>>=
+## plot diagnostics for a linear model
+par(mfrow=c(1,4)) 
+plot(tooth.regress2)
+@      
+{\it We seem to have no problem with the normality and constant variance assumptions.} 
+
+\item  The math department server is backed up regularly so that we
+  shouldn't all lose our saved documents.  When did  you last back up your
+  personal computer?  Have you used outside storage like
+  google, dropbox, github, or other?  Explain with regard to how you will
+  keep your work safe for this class.  In particular, if you are using
+  more than one computer, how will you transfer an partially completed
+  HW back and forth? \\ % end line
+  
+    {\it I will backup my files on google drive, and also use google drive to transfer files from computer to computer. }\vspace{.5cm}
+  \end{enumerate}
+  
+   
+   {\large\bf R Code Appendix}
+   
+%% You shouldn't need to change this unless you change the code chunks   
+   
+<<ref.label='chunk1', echo=TRUE,eval=FALSE,fig.keep='none'>>=
+@   
+<<ref.label='toothTable', echo=TRUE,eval=FALSE,fig.keep='none'>>=
+@ 
+<<ref.label='toothModel', echo=TRUE,eval=FALSE,fig.keep='all'>>=
+@ 
+
+  \end{document}
+
+
+
+

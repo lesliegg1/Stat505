@@ -1,0 +1,401 @@
+\documentclass{article}
+
+  %% LaTeX margin settings:
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+\setlength{\maxwidth}{6.5in}
+
+\newcommand{\R}{{\sf R}}
+\newcommand{\bfbeta}{\mbox{\boldmath $\beta$}}
+\newcommand{\bfD}{\mbox{\boldmath $D$}}
+\newcommand{\bfe}{\mbox{\boldmath $e$}}
+\newcommand{\bfL}{\mbox{\boldmath $L$}}
+\newcommand{\bfR}{\mbox{\boldmath $R$}}
+\newcommand{\bfmu}{\mbox{\boldmath $\mu$}}
+\newcommand{\bfV}{\mbox{\boldmath $V$}}
+\newcommand{\bfX}{\mbox{\boldmath $X$}}
+
+\newcommand{\bfy}{\mbox{\boldmath $y$}}
+\newcommand{\bfz}{\mbox{\boldmath $z$}}
+\newcommand{\bfSig}{\mbox{\boldmath $\Sigma$}}
+\newcommand{\tr}{^{\sf T}}
+\newcommand{\inv}{^{-1}}
+
+\begin{document}
+
+<<setup, echo=FALSE>>=
+opts_chunk$set(fig.width=5, fig.height=4, out.width='\\linewidth', size = 
+               "footnotesize")
+options(replace.assign=TRUE,width=99, digits = 3, max.print="72",
+        show.signif.stars = FALSE)
+@
+
+\large
+\begin{center}
+{\Large \bf  Stat 505 Assignment 5  Fall 2014\vspace{.2in}} \\ 
+Solutions
+\end{center}
+
+\begin{enumerate}
+\item The experimental units are 12 thirsty albino rats who are
+  trained to press a lever to get water prior to the experiment.
+  Their pre-experiment pressing rate is recorded as low (1), medium
+  (2), or high (3).  They are then injected with one of four levels of
+  a drug where 0 is a control saline solution, the other values are mg
+  per kg of the rat's weight. This was a cross-over design replicated
+  twice, so each rat has 8 measurements of postRate (number of lever
+  presses per second), two at each of four drug levels, and the order
+  of treatments was randomized for each rat. Time intervals between
+  treatments were long enough to remove any carryover effects. 
+<<input, echo=F, message=FALSE>>=
+require(xtable, quietly = TRUE)
+require(nlme, quietly = TRUE)
+require(lattice, quietly = TRUE)
+require(ggplot2, quietly = TRUE)
+rats <-  read.csv("http://www.math.montana.edu/~jimrc/classes/stat505/data/drugResponse.csv")
+rats$ratID <-  factor(rats$ratID)
+rats$preRate <- factor(rats$preRate, labels=c("lo","med","hi"))
+rats$dose <- factor(rats$dose)
+@    
+
+<<plotTheRawData, echo=F, fig.width=9>>=
+qplot(x=dose, y = postRate, data = rats, geom="boxplot", facets=~preRate)+theme_bw()
+@  
+
+   {\em There is a strong difference in postRate between the three preRate
+    groups, and a strong difference in postRate between the highest
+    doses of the drug and the three lower doses.  It appears to be a
+    threshold effect. The drug doesn't kick in til you get over 1.5
+    mg/Kg, and then it has the same negative effect within each
+    preRate group.}
+   
+\begin{enumerate}
+   \item   Write out a model for these data using preRate as a
+      three-level factor and drug as a four-level factor. Include
+      distributions for all random components (assuming normality
+      throughout).
+  $$ y_i = \mu + \alpha_{j[i]} + \tau_{k[i]} + \delta_{j[i]k[i]} +
+  b_{m[i]} + \epsilon_i$$
+   {\em   Where $i$ goes from 1 to 96 to specify row number, $j[i] = 1,2,3$ tells
+      us which prerate group that rat belongs to, $k[i] = 1,2,3,4$ is the dose
+      given this rat in row $i$.  The $\alpha$'s are preRate effects,
+      $\tau$'s are dose effects, and $\delta$'s are interactions
+      betweem prerate and dose. $b_{m[i]}$ is the random effect for
+      the $m$th (1 to 12) rat which has $N(0,\sigma^2_b)$
+      distribution. Finally the residual, $\epsilon_i \sim
+      N(0,\sigma^2)$.  The $\epsilon_i$'s are iid as are the $b_m$,
+      and the two levels of variation are independent.
+}
+    \item What is the variance-covariance matrix for the 96
+      observations? (Use Greek letters, not estimated values.)
+      \begin{enumerate}
+      \item Explain the structure of the matrix.\\
+        {\em Block diagonal with a block $\bfSig_m$ (8 by 8) for each of
+          the 12 rats.  Within $\bfSig_m$ we have $\sigma^2+\sigma^2_b$
+          on the diagonal and $\sigma^2_b$ off diagonal.}
+    \item  What are the variances of all responses?\\
+            $$\sigma^2_{total} = \sigma^2+\sigma^2_b$$
+	  \item What are the covariances between each possible pair of
+	  responses?   \\
+          {\em $\sigma^2_b$ for two observations on the same rat, 0 for
+            observations on different rats.}
+      \end{enumerate}
+    \item Is a 'split plot' analysis appropriate for these data? Explain.\\
+       {\em  A split plot  agricultural experiment uses whole plots as
+         blocks for the split plot treatment.  Here we do not assign a
+       treatment at the rat level, we just observe the rats' pressing
+       speed before any intervention.  Like a split plot treatment,
+       dose is assigned at random within each rat, so rats are like
+       the 'whole plot' factor.}
+     
+      \item Fit the above model to the data using \verb|aov| in
+	R using RatID within the Error function.
+        Explain the output including the results for each F test 
+	shown.
+<<aovfit,echo=F,results='asis'>>=
+rataovfit <- aov(postRate ~ preRate*dose + Error(ratID), data = rats)
+xtable(summary(rataovfit))
+@ 
+       {\em We can test for differences in mean postRate response depending
+         on the preRate level in the ``rat'' or ``whole plot'' stratum, but
+         it seems a bit silly, since preRate was observed, not assigned.  The
+         F test on 2 and 9 df has a value of 34 and a small p-value.  The
+         effect of Dose is strong ($F = 251$ on 3, 75 df with p-value
+         $<.0001$), and the interaction between Dose and preRate is weak (F =
+         0.59 on 6, 75 df, p-value $> .5$).}
+
+       \item Fit the model using  \verb|gls| and the correct
+         correlation specification in R.  Compare F tests with those
+         from aov. 
+<<glsfit,echo=FALSE, results='asis'>>=
+ratGLS <- gls(postRate ~ preRate *dose,rats, cor=corCompSymm(form=~1|ratID))
+xtable(anova(ratGLS))
+@         
+   
+  {\em The correct structure is ``compound symmetric'', and the F
+    statistics and p-values agree exactly.  It does not say 
+    which denominator is used, but it must have used the same ones as
+    in aov output.}
+      
+       
+      \item Run \verb|anova(lm(postRate ~  preRate * dose * ratID,data=rats))|
+        and explain where each line of output (its df and its Sum Sq)
+        shows up in the table produced by \verb|aov|.  Which lines
+        provide the proper F test to test for effects of preRate?
+<<lmfit,echo=FALSE, results='asis'>>=
+xtable(anova(lm(postRate ~ preRate *dose*ratID,rats)))
+@        
+   
+  {\em I'll refer to the \verb|aov| output as table 1 and the \verb|anova(lm())|
+    output as table 2. The preRate lines are the same in both tables.
+  The first Residuals line in table 1 is the ratID line in table
+  2. The dose line agrees in both tables, as does preRate:dose.  Table
+2 splits the df and SSq for Residuals from Table 1 into a piece
+labeled dose:ratID ($3\times 9 = 27$ df SSq = 0.01) and a residuals
+line  with 48 df and ssq=0.12 which is the replication error. If we
+use higher accuracy than I've shown the SSq's also add up to give
+0.1364 in the aov Residuals row. } 
+  
+      %% \item Return to (c) and provide estimates for all variances and
+      %%   covariances.  \\
+      %%   $\widehat{\sigma}^2_{total} = 0.08574129^2 = 0.00735$\\
+      %%   $\widehat{\sigma}^2_b =
+      %%   0.08574129^2{0.7526095} =  0.055$\\
+      %%   $\widehat{\sigma}^2_{b} =  0.007351569- 0.0055329 = 0.0018$
+        
+      \item  Explain what we've learned about the drug effects from these data.
+	 Does dose interact with initial press rate? How does the
+         identification of rats (as opposed to random assignment) as
+         low/medium/high rates of bar pushing effect the scope of
+         inference?\\ 
+<<glsplots, echo=F, results='hide', out.width='\\linewidth', fig.width=12 >>=
+require(gridExtra, quietly = TRUE)
+ ratResid <- resid(ratGLS, type = "pearson")
+defaultPlot <- plot(ratGLS)
+qqGG2 <- function (vec) # argument: vector of numbers
+{
+  # following four lines from base R's qqline()
+  y <- quantile(vec[!is.na(vec)], c(0.25, 0.75))
+  x <- qnorm(c(0.25, 0.75))
+  slope <- diff(y)/diff(x)
+  int <- y[1L] - slope * x[1L]
+
+  d <- data.frame(resids = vec)
+
+  ggplot(d, aes(sample = resids)) + stat_qq() + geom_abline(slope = slope, intercept = int)
+}
+qqplotR <- qqGG2(ratResid)
+ locScalePlot <- qplot(x = fitted(ratGLS), y = sqrt(abs(ratResid))) + geom_smooth(level = 0)
+grid.arrange(defaultPlot, qqplotR, locScalePlot, ncol=3)
+@          
+         {\it From the plot of the raw data we can see that there are large
+           differences between the three groups of preRate rats, and
+           that the drug has little to no effect until we get to the
+           highest dose.  Then it kicks in and decreases postRate by
+           about 0.3 units.  No preRate by Dose is visible and  the
+           large p-value confirms the fact that preRate and Dose
+           effects seem to be simply additive. 
+           I'm not saying we should drop the interaction because this
+           is not a model building exercise.  We needed to see if
+           there was an interaction, and we found that there is not
+           one.
+           
+           Diagnostic plots show no problem with the usual assumptions
+           of constant variance and normality.
+         
+            Because dose was randomly assigned, we can infer that high
+          dose does cause a decrease in pressing rate.  We know
+          nothing about how these 12 rats were selected. I assume they
+        are a convenience sample from available lab rats.  Our
+        statistical inference is limited to the sample unless someone
+        can argue that these are a genetically pure strain of rats,
+        and the inference extends to all rats of this type.}
+         
+    \end{enumerate}
+
+  \item 
+     Load the  Sitka data (from the  MASS library in R) on
+    the growth of 79  sitka spruce trees.
+    \begin{enumerate}
+    \item 
+      Plot size over time, separating the two groups, and using
+        a different line for each individual tree. 
+        
+<<Sitkaplot1, echo=F, results='hide', out.width='\\linewidth', fig.width=8>>=
+data(Sitka, package="MASS")
+qp1 <- qplot(x=Time, y = size, data = Sitka, group=tree, geom=c("point","line")) + theme_bw() +facet_grid(. ~ treat)
+pp2 <- xyplot(size ~ Time | treat, data = Sitka, group = tree, type = "l")
+grid.arrange(qp1, pp2, ncol=2)
+@ 
+ 
+{\it The rate of growth seems to be decreasing. The curves are
+  getting flatter. There is wide variation in starting sizes at the
+  first observation, with control group seeming to have a larger mean
+  size. It's difficult to tell if slopes between the two groups vary,
+  but we do see lots of variation between trees. }
+      
+      \item   Use {\tt gls} to fit a  quadratic model across
+        all the data.  Update the model adding treatment effects which
+        allow the intercept, slope, or quadratic coefficients to
+        depend on treatment.
+        
+<<Sitkafit1, echo=F, results='asis'>>=
+sitka.gls1 <- gls(size ~ Time + I((Time-202)^2), data = Sitka)
+sitka.gls2 <- update(sitka.gls1, . ~ . * treat)
+xtable(anova(update(sitka.gls1,method="ML"), update(sitka.gls2,method="ML"))[,2:9])
+@     
+    {\it There is strong evidence  ($\chi^2_{3}=11.08$, p-value $ = 0.0113$)
+      that a linear model with treatment effects is preferred over the
+      model with just a single quadratic curve. 
+      }
+        
+      \item   The times at which the data were gathered are not quite
+	  equally spaced, but assume that they are close enough to
+	  equal, and check for serial correlation with an appropriate
+	  plot.  Conclusions?
+    
+<<acf,fig=T, echo=F, results='hide', out.width='.5\\linewidth'>>=
+plot(ACF(sitka.gls2, form = ~1 | tree), alpha = 0.1)
+@     
+    {\it Strong correlations are evident at lags 1, 2, 3, and 4 within
+      the same tree. It looks like a compound symmetric structure.}
+	    
+   \item  Update the above model to obtain  three other models:
+     \begin{itemize}
+     \item   add AR1 correlation structure (within a tree as 
+       {\tt corAR1(form = ~1|tree) }).
+     \item   add compound symmetric correlation (within a tree).
+     \item add symmetric correlation (within a tree). 
+     \end{itemize}
+ Compare the four models with the {\tt anova} function. Which of
+     the four models has smallest AIC? Which does the F test favor?
+     (There is no nesting in either direction between AR1 and CompSymm
+     models, but each is intermediate between no
+     correlation and the full correlation fit, so one anova could
+     compare AR1 to null and full, and a second could compare
+     CompSymm to null and full models.)
+<<compareFits, echo=F, results='asis'>>=
+sitka.gls3 <- update(sitka.gls2, correlation = corAR1(form = ~1 | tree))
+sitka.gls4 <- update(sitka.gls2, correlation = corCompSymm(form = ~1 | tree))
+sitka.gls5 <- update(sitka.gls2, correlation = corSymm(form = ~1 | tree))
+xtable(anova(sitka.gls2, sitka.gls3, sitka.gls5)[,2:9])
+xtable(anova(sitka.gls2, sitka.gls4, sitka.gls5)[,2:9])
+@     
+
+    {\it Comparing AIC's, we note that each correlation structure is a
+      big improvement over no correlation, decreasing AIC by at least
+      700 units. General symmetric structure has the smallest AIC by
+      about 20 units over the nearest competitor: AR1. Compound
+      symmetric does not fit as well as the AR1, though both use one
+      parameter to model all correlations. I'm surprised that general
+      symmetric is this much better than AR1 or CS, because if you
+      print the intervals, they all overlap substantially. }
+
+  \item As trees get bigger, sizes might get more variable. Check to
+    see if that is the case, and if so, adjust your model. 
+<<sdIncrease, echo = F, results = 'asis'>>=
+ sitka.gls6 <- update(sitka.gls5, weights = varPower())
+ xtable(anova(sitka.gls5, sitka.gls6)[,2:9])
+@     
+   {\em Adding varPower weights did not improve the fit, giving a
+     $\chi^2_1 = 0.72$ and a p--value of 0.40.  We can omit weights. }
+   
+  \item Now we should have a model with lots of treatment terms
+    and a reasonable variance-covariance structure, since you've
+    looked at several correlation models and allowed for
+    increasing variance as trees get bigger.  Now examine the
+    treatment effects.  Are all of the terms in the model formula
+    needed? Reduce the model one term at a time until you can justify
+    all remaining terms.
+
+<<drop1, echo=F, results='asis'>>=
+xtable(anova(update(sitka.gls4, method="ML") ))
+sitka.gls7 <- update(sitka.gls4, . ~ . - I((Time-202)^2):treat)
+xtable(anova(update(sitka.gls7, method="ML") ))
+@     
+    {\it The interaction between treatment and time$^2$ is not needed, so
+      I removed it. I would not remove the treatment effect, even
+      though it has a large p-value because it's needed for the
+      interaction with time. Conclusion: there is a treatment effect
+      on the growth rate (slope), see below for more discussion.}
+
+  \item  Diagnostic plots.
+    
+<<plot2, echo=F, results='hide', fig.width=12, message = FALSE, warning=FALSE >>=
+treeResid <- resid(sitka.gls7, type = "pearson")
+defaultPlot <- plot(sitka.gls7)
+qqplotR <- qqGG2(treeResid)
+ locScalePlot <- qplot(x = fitted(sitka.gls7), y = sqrt(abs(treeResid))) + geom_smooth(level = 0)
+grid.arrange(defaultPlot, qqplotR, locScalePlot, ncol=3)
+@        
+    {\it There are a few small residuals, and slight evidence of a
+      long left tail, but I think the data is close to normally
+      distributed.}
+
+<<checkIntervals, echo=F, results='hide'>>=
+intervals(sitka.gls7)
+@     
+
+  {\em The intervals command works without generating an error, so we
+    do not have an over-specified model.}
+  
+
+  \item  How does the ozone treatment affect growth of these trees?
+    
+  {\it The estimated decreases in growth rate .00229 (log volume
+    units)/day, but I'd rather report a 95\% confidence interval
+    estimate of (-0.0012, -0.0034) for the ozone effect on growth
+    rate.  We could rescale that to a change in the annual growth rate
+    of (-0.422, -1.25). Growth rates decrease as the trees get bigger, but
+    the curvature (rate of change in the slope) is the same for both
+    groups of trees.  
+  
+     I assume that the trees used are a convenience sample of
+     available trees, so our inference applies only to this sample
+     (unless experts can argue otherwise).  The treatment was assigned
+     at random, so we can say that ozone treatment causes a decrease
+     in growth rate. 
+   
+     I do wonder how many growth chambers were used in the study.  I
+     fear that all controls were in one chamber, and all ozone trees
+     in another. Then treatments were really assigned to chambers, and
+     we have only two independent units with pseudo--replication
+     inside each.}
+
+  \end{enumerate}
+
+
+\end{enumerate}
+  
+\begin{center}
+  {\large\bf R Code}
+\end{center}
+
+<<input>>=
+@ 
+<<plotTheRawData, eval=FALSE>>=
+@ 
+<<aovfit,results='hide'>>=
+@ 
+<<glsfit, results='hide'>>=
+@ 
+<<lmfit, results='hide'>>=
+@ 
+<<Sitkaplot1, fig.keep='none'>>=
+@ 
+<<Sitkafit1, results='hide'>>=
+@ 
+<<acf,fig.keep='none'>>=
+@ 
+<<compareFits, results='hide'>>=
+@ 
+<<drop1, results='hide'>>=
+@ 
+<<plot2, fig.keep='none' >>=
+@ 
+<<checkIntervals>>=
+@ 
+  \end{document}

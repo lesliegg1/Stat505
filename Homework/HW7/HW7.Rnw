@@ -1,0 +1,178 @@
+\documentclass{article}
+
+  %% LaTeX margin settings:
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+\setlength{\maxwidth}{6.5in}
+
+\newcommand{\R}{{\sf R}}
+\newcommand{\bfbeta}{\mbox{\boldmath $\beta$}}
+\newcommand{\bfep}{\mbox{\boldmath $\epsilon$}}
+\newcommand{\bfD}{\mbox{\boldmath $D$}}
+\newcommand{\bfL}{\mbox{\boldmath $L$}}
+\newcommand{\bfR}{\mbox{\boldmath $R$}}
+\newcommand{\bfmu}{\mbox{\boldmath $\mu$}}
+\newcommand{\bfV}{\mbox{\boldmath $V$}}
+\newcommand{\bfX}{\mbox{\boldmath $X$}}
+
+\newcommand{\bfy}{\mbox{\boldmath $y$}}
+\newcommand{\bfz}{\mbox{\boldmath $z$}}
+\newcommand{\bfSig}{\mbox{\boldmath $\Sigma$}}
+\newcommand{\tr}{^{\sf T}}
+\newcommand{\inv}{^{-1}}
+
+\begin{document}
+
+<<setup, include=FALSE, cache=FALSE>>=
+opts_chunk$set(fig.width=5, fig.height=4, out.width='.5\\linewidth', dev='pdf', concordance=TRUE)
+options(replace.assign=TRUE,width=72, digits = 3, 
+        show.signif.stars = FALSE)
+@
+%% replace = with <-
+%% R output can go to 112 characters per line before wrapping
+%% print 3 significant digits
+
+
+\large
+\begin{center}
+{\Large \bf  Stat 505 Assignment 7 \vspace{.2in}} \\ 
+
+\end{center}
+October 24, 2014
+
+\begin{enumerate}
+
+\item \begin{enumerate}
+
+<<pythdata, echo=FALSE>>=
+pyth.dat <- read.table("~/Documents/Stat505/Homework/HW7/pyth.dat", head=T)
+@
+
+
+\item Below is the summary for the interaction model. The model fits very well (adjusted $R^2=0.99$). There is strong evidence of a relationship between $x1$ and the mean of $y$ when $x2$ is $0$ (p-value$<0.0001$ from t-stat$=16.43$ on $36$ df).  A one unit increase in $x1$ is estimated to be associated with a $0.912$ unit increase is the mean of $y$ when $x2$ is held constant at $0$, with a $95\%$ confidence interval from a $0.799$ to a $1.024$ unit increase. There is also strong evidence of a relationship between $x2$ and the mean of $y$ when $x1$ is zero (p-value$<0.0001$ from t-stat$=34.190$ on $36$ df). There is also strong evidence that the relationship between $x1$ and $y$ changes across $x2$ (p-value$<0.0001$ from t-stat$=-8.225$ on $36$ df). A one unit increase in $x1$ is estimated to be associated with a $0.037$ unit decrease is the mean of $y$ when $x2$ is held constant at $1$, with a $95\%$ confidence interval from a $0.0466$ to a $0.0282$ unit decrease.
+
+<<lm, echo=FALSE, message=FALSE, size='footnotesize', results='asis'>>=
+pyth.dat1 <- pyth.dat[1:40,]
+lm.fit <- lm(y~x1*x2, data=pyth.dat1)
+require(xtable)
+xtable(summary(lm.fit))
+@
+
+\item First, I looked at the relationship between $x1$ and $y$ and $x2$ and $y$ separately. But, I really want to look at the relationship between each variable and y while holding the other variable constant. To get a rough visual display of this, I grouped the $x2$ variable into four different intervals so that I could get an idea of the relationsip between $x1$ and $y$ as $x2$ changes. The lines on the plots below show the relationship between $x1$ and $y$ for each grouping of $x2$ values. We could also do this same thing to show the relationship between $x2$ and $y$ as $x1$ changes.
+
+<<plot, echo=FALSE, message=FALSE>>=
+pyth.dat1$x2.f <- ifelse(pyth.dat1$x2<=5,"lt5", ifelse(pyth.dat1$x2>5 & pyth.dat1$x2<10, "btwn5&10", ifelse(pyth.dat1$x2>10 & pyth.dat1$x2<15, "btwn10&15", ifelse(pyth.dat1$x2>15,"gr15",0))))
+x2.fac <- factor(pyth.dat1$x2.f)
+lm.plot <- lm(y~x1*x2.fac,data=pyth.dat1)
+require(ggplot2)
+line.data <- data.frame(b = c(3.12158,6.27177,12.50536,17.04328), m=c(0.67539,0.60772,0.40143,0.33687), x2.f = c("lt5","btwn5&10", "btwn10&15", "gr15"))
+qplot(x1,y,data=pyth.dat1, facets=~x2.f, geom="point") + geom_abline(aes(intercept = b, slope= m), line.data)
+@
+
+<<plot2, echo=FALSE>>=
+plot(c(rep(-5,23)) ~ c(rep(-5,23)), ylim=c(-3,23), xlim=c(-3,23), ylab="y", xlab="x", main="y vs. x1 and x2")
+points(y~x1, type="p", ylim=c(0,20), col=4, data=pyth.dat)
+points(y~x2, type="p", col=5, data=pyth.dat)
+with(pyth.dat, legend(10,5, c("x1", "x2"), col=c(4,5), lty=c(1,2), text.col="black", merge=TRUE))
+@
+
+
+\item The residual plots are below. The normal Q-Q plots shows that the distribution of the residuals has shorter tails than we would expect from a normal distribution. I am not worried about the normality assumption because parametric tests are robust to departures from normality, especially with short-tailed distributions. There is no obvious trend in the scale-location plot, so I am not worried about the homogeneity of variance assumption. There is some indication of curvature in the residuals vs. fitted values plot. This indicates that the assumption of linearity may not be met and we should consider adding a curvature term to the model. Additionally, Cook's distance identifies an outlier. I ran the model without this point and the estimates and standard errors change only slightly and our results do not change.
+
+<<residplot, echo=FALSE, out.width="\\linewidth", fig.width=12>>=
+par(mfrow=c(1,4))
+plot(lm.fit)
+@
+
+\newpage
+
+\item The following are the $95\%$ prediction intervals for each of the $20$ missing data points. The $95\%$ prediction intervals in the table quantify how confident we are about these predictions. I feel good about these predictions. Our model appears to fit well ($R^2=0.9904$), and we are predicting responses for values of $x1$ and $x2$ within the range of data for which we do have observations.
+
+<<predict, echo=FALSE, results='asis', message=FALSE>>=
+x.new <- data.frame(x1=pyth.dat$x1[41:60], x2=pyth.dat$x2[41:60])
+predictions <- predict(lm.fit, x.new, interval="prediction", level=0.95)
+require(xtable)
+xtable(predictions)
+@
+
+
+\end{enumerate}
+
+\item We solve $1.01^{\hat{\beta_1}}=1.008$ and $\hat{\beta_1}=0.8008$. Then we solve $log(30000) 
+=\hat{\beta_0}+0.8008log(66)$ and $\hat{\beta_0}=6.954$. Our estimated regression line is then...
+
+$$\widehat{\mu(log(earn)|log(ht))}=6.954+0.8008log(ht)$$
+
+If approximately $95\%$ of people fall within a factor of $1.1$ of predicted values, then $e^{2\hat{\sigma}} \approx 1.1$. Our residual standard deviation, $\hat{\sigma}$ would be approximately $\frac{log(1.1)}{2}=0.0477$. 
+
+\item $R^2=1-\hat{\sigma}^2/s_y^2$, so we need to calculate $s_y^2$ from $s_x^2$. From our regression equation, we have,
+
+$$log(earn)_i = \hat{\beta_0}+\hat{\beta_1}log(ht)_i+e_i$$
+
+$$\widehat{Var[log(earn)_i]} = 0.8008^2\widehat{Var[log(ht)]}+\widehat{Var[e_i]} = 0.8008^2*0.05^2+0.0477^2 = 0.00388$$
+
+Then,
+
+$$R^2 = 1-.0477^2/0.00388 = 0.414$$
+
+\item \begin{enumerate}
+
+\item See the the model output below. No, the slope coefficient is not statistically significant (p-value$=0.5784$). We would not expect it to be significant because there is truly no relationship between variable $1$ and variable $2$.
+
+<<sim, echo=FALSE, results='asis'>>=
+set.seed(84)
+var1<-rnorm(1000,0,1)
+var2<-rnorm(1000,0,1)
+reg <- lm(var1~var2)
+require(xtable)
+xtable(summary(reg))
+@
+
+\item In $3$ of $100$ simulations, the slope coefficient was found to be statistically significant (when truly the slope is $0$). This is consistent with what we would expect to see - we would expect to make a type I error about $5\%$ of the time when using a t-statistic cutoff of $2$. 
+
+<<simrepeat, echo=FALSE, message=FALSE>>=
+set.seed(94)
+require(arm)
+z.scores <- rep(NA,100)
+for (k in 1:100) {
+  var1 <- rnorm(1000,0,1)
+  var2 <- rnorm(1000,0,1)
+  fit<-lm(var2~var1)
+  z.scores[k] <- coef(fit)[2]/se.coef(fit)[2]
+}
+sum(ifelse(abs(z.scores)>2,1,0))
+@
+
+
+\end{enumerate}
+
+
+\end{enumerate}
+
+<<pythdata, echo=TRUE, eval=FALSE>>=
+@
+
+<<lm, echo=TRUE, eval=FALSE>>=
+@
+
+<<plot, echo=TRUE, eval=FALSE>>=
+@
+
+<<plot2, echo=TRUE, eval=FALSE>>=
+@
+
+<<residplot, echo=TRUE, eval=FALSE>>=
+@
+
+<<predict, echo=TRUE, eval=FALSE>>=
+@
+
+<<sim, echo=TRUE, eval=FALSE>>=
+@
+
+<<simrepeat, echo=TRUE, eval=FALSE>>=
+@
+  \end{document}

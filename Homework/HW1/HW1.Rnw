@@ -1,0 +1,190 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+\usepackage{verbatim}
+\usepackage{ulem}
+\setlength{\topmargin}{-.8 in}
+\setlength{\textheight}{9.3 in}
+\setlength{\oddsidemargin}{-.1in}
+\setlength{\evensidemargin}{-.1in}
+\setlength{\textwidth}{6.35in}
+
+
+\begin{document}
+
+<<setup,echo=FALSE,results='hide',warning=FALSE, message=FALSE>>=
+library(knitr)
+opts_chunk$set(fig.width=5, fig.height=4, out.width='\\linewidth', dev='pdf', concordance=TRUE, size='footnotesize')
+options(replace.assign=TRUE,width=84, digits = 1, max.print="72",
+        show.signif.stars = FALSE)
+require(xtable)
+@        
+
+\begin{center}
+{\bf  Homework 1  STAT 505 Fall 2014} \\
+Leslie Gains-Germain
+\end{center}
+
+%The objective is to model Volume based on Girth and Height. We'll consider linear models, possibly after transformation.
+
+%\begin{enumerate}
+
+%\item %Start with plots to examine relationships.
+   % Note. In knitr, several options control figure size and go in as options for a code chunk, or we can set them for the session with the opts chunk.fig.width $= 5$, fig.height $= 4$ these are in inches and set the size (especially consider the height/width ratio) for a graphics file which R creates to store the plot. If they are too small, you'll get large margins and large text which overwhelm the plotting area. Large values gives the opposite problem (small fonts).The out.width command sets the size of the plot on the page of paper. linewidth is a LaTeX command, and it has to have an extra slash and be in quotes (single or double) for knitr to pass it on into LaTeX. My code sets a default of .5 times linewidth, but you can set another value in any code chunk. LaTeX grabs the file and swells or shrinks it to fit the page. You could also set out.height, but it might distort the plot if you do both.Here we need two plots, one for Height, one for Girth, so you could tell R to split the plotting area to have 1 row, 2 columns like this:
+
+
+           
+
+    %The par goes inside the R code chunk, not in the code chunk line. Having specified 2 plots, you will want the file R creates to have twice the width, so fig.width = 10 is needed in the code chunk options.
+    
+%\begin{enumerate}
+
+%\item Think about and discuss: what is the geometric relationship between these measurements? Would you expect some transformation to give us a more linear pattern? Why?\\
+
+{\bf \large Introduction} \\
+
+{\it The girth (in), height (ft), and volume (ft$^{3}$) of $31$ felled black cherry trees was recorded. No additional information is given about the method of data collection or the location of the trees.} \\
+
+{\bf \large Exploratory Analysis} \\
+
+{\it In general, trees with larger girth tend to be taller and have larger volume. More specifically, $volume=\pi r^2h$, or $V=\frac{1}{4\pi} C^2h$ where C=circumference or girth. Therefore, I would expect the relationship between girth and volume to be curved and this is what we see in the pairs plot below. A log transformation on girth may be appropriate before fitting a linear model to these data. Second, we see increasing variability in the sample volumes as the mean volume of trees increases (see the volume vs. height plot below). Lastly, the histogram of tree volumes shows that the data are right skewed. A log transformation on volume will help equalize the standard deviations and make the data more symmetric. } \\
+
+<<exploringPlots, echo=FALSE, fig.width=10, out.width="\\linewidth">>=
+require(datasets)
+data(trees)
+  ## also get a description with:
+help(trees)
+  ## and examine structure with
+#str(trees)
+par(mfrow=c(1,2))
+pairs(trees, panel = panel.smooth, main = "trees data")
+#par(mfrow=c(1,3))
+#plot(Volume ~ Girth, data = trees)
+#plot(Volume ~ Height, data = trees)
+#plot(Height ~ Girth, data = trees)
+#library(lattice)
+@
+
+
+<<hist, echo=FALSE, out.width=".5\\linewidth">>=
+hist(trees$Volume)
+pairs(log(trees), panel=panel.smooth, main = "After log transformation on all variables")
+@
+
+
+<<coplot, echo=FALSE, out.width=".5\\linewidth">>=
+par(mfrow=c(1,2))
+coplot(Volume ~ Girth | Height, data = trees,
+      panel = panel.smooth)
+coplot(log(Volume) ~ log(Girth) | log(Height), data = trees,
+      panel = panel.smooth)
+@
+
+
+
+
+%\item If you type example(trees), R runs the example code at the bottom of the trees help page. View this code to see how they used transformations. Include any of these plots that help you make sense of these data. You'll want to read the coplot help to see what it is doing, and you should wonder what happens if we switch the two predictors within that function call. Explain what relationships you've found. \\
+
+{ \it After the log transformation of all the variables, we reexamine the pairs plot. We can see that the relationship between girth and volume looks more linear. The relationship between height and volume also looks more linear with more constant spread. The coplot function shows the relationship between girth and volume for tree heights within specified intervals. If we switch the two predictors in coplot(), we are shown the relationship between height and volume for tree girths in specified intervals. We can see in the above plots that the relationship between girth and volume at specified heights becomes more linear after the transformation. } \\
+
+
+
+%\end{enumerate}
+
+%\item Fit a linear model using Volume in the original scale. Explain the coefficient estimates.
+    
+    
+<<fit1, results = 'asis', echo = FALSE, message=FALSE>>=
+require(xtable)
+fit1 <- lm(Volume ~ Height + Girth, trees)
+xtable(summary(fit1))
+fm2 <- lm(log(Volume) ~ log(Girth) + log(Height), data = trees)
+@     
+    
+{\it I first fit a linear model on the original scale. According to this model, there is  moderate evidence of a relationship between the mean volume of trees and tree height (p-value$=0.0145$). There is strong evidence of a relationship between the mean volume of trees and tree girth (p-value$<0.0001$). The mean volume of trees is estimated to increase by $0.339$ cubic feet for a one foot increase in tree height with a $95\%$ confidence interval from a $0.073$ to a $0.606$ cubic foot increase. The model also estimates that a one inch increase in tree girth is associated with a $4.708$ cubic foot increase in the mean volume of trees with a $95\%$ confidence interval from a $4.167$ to a $5.249$ cubic foot increase.}    \\
+    
+    
+%\item Plot the default four diagnostic plots and discuss the "usual assumptions". You might need to look back at your regression course book or notes, but they should appear somewhere. If you're not familiar with a Quantile-Quantile plot (plot 2), you'll need to research that as well. Is there evidence of a problem in any of the assumptions?
+
+{\bf \large Discussion of Assumptions} \\
+
+<<diagnostics, echo=FALSE, fig.width=10>>=
+par(mfrow=c(1,4))
+plot(fit1)
+@
+
+{\it The diagnostic plots do show some problems with the ``usual assumptions''. The Residuals vs. Fitted Values plot shows that the residuals are not centered at $0$ for all fitted values. For some fitted values, all the residuals are positive and for others all are negative. This indicates that a line is not appropriate to model these data, or in other words the linearity assumption is not met. The constant variance assumption also does not appear to be adequately met because the spread of the residuals does not seem to be constant across fitted values. The normal Q-Q plot shows that the points do lie along a straight line, which indicates that the normality assumption is met. There is one outlier, however, which is flagged in the last diagnostic plot. We will also assume the independence assumption is met although we have no information to verify this assumption. } \\
+
+<<logdiagnostics, echo=FALSE, fig.width=10>>=
+par(mfrow=c(1,4))
+plot(fm2)
+@
+
+
+
+{\it After the log transformation, we see that the residuals are more centered at $0$. Although the spread appears to change somewhat across fitted values, I wouldn't expect the spread to appear perfectly constant with a relatively small sample size of $31$. The assumptions of linearity and constant variance are adequately met. We do see some departures from normality in the tails, but I am not too worried about this because our parametric tools are robust to departures from normality. Additionally, there are no outliers flagged after the transformation.} \\
+
+%\item The example code on the help page fits a different model. Fit that one as well, interpret coefficient estimates (after back transforming the results to the Volume scale), and again look for problems using the diagnostic plots.
+
+{\bf \large Summary of Findings}  \\
+
+<<example, echo=FALSE, results='asis'>>=
+require(stats); require(graphics); require(xtable)
+fm2 <- lm(log(Volume) ~ log(Girth) + log(Height), data = trees)
+xtable(summary(fm2))
+#step(fm2)
+@
+
+<<backtransform, echo=FALSE, eval=FALSE>>=
+coef(fm2)
+2^coef(fm2)
+confint(fm2)
+2^confint(fm2)
+@
+
+
+{\it There is strong evidence of a relationship between tree girth and the median tree volume on the log scale (p-value$<0.0001$). The median tree volume is estimated to change by $3.95$ times for every doubling of tree girth with an associated $95\%$ confidence interval from $3.55$ to $4.40$ times. There is also strong evidence of a relationship between between tree height and the median tree volume on the log scale (p-value$<0.0001$). The median tree volume is estimated to change by $2.17$ times for every doubling of tree height with an associated $95\%$ confidence interval from $1.62$ to $2.90$ times. Note also in the model summary that the coefficient for girth is close to $2$ and the coefficient for height is close to $1$ which is what we would expect mathematically ($V=\frac{1}{4\pi} G^2h$ and $V= e^{\beta_0}G^{\beta_1}h^{\beta_2}$ after backtransforming). \\
+    
+    
+%\item I've not been able to track down the origins of the data. Would you assume these are a random sample or a convenience sample? To what population are you willing to extend your inference? Do you think that there is a causal relationship between [Height, Girth] and Volume? Explain. 
+
+{\bf \large Scope of Inference} \\
+
+{\it Since it is not known whether the trees in the study were randomly selected, inference extends only to the $31$ trees in the study. Since this was a purely observational study and no treatments were imposed, we cannot establish whether there is a causal relationship between [height, girth] and volume of trees.}
+
+%\end{enumerate}
+
+%I'd like your write up to be in "report" format. Your target audience is a forestry student who has taken a course in regression. Explain what we've learned about the relationships in a way a student can understand. Include plots and tables in the body of the report near where you discuss them. Do not show R code as part of the report, but do include it all (without plots) at the end as an appendix. No plots are needed in the appendix.
+
+%As a report, you should not use the numbers above, but it might help to insert some headings or section titles so we can tell what the major parts of the report are. The philosophy of "reproducible research" is that you will be able to come back to the Rnw (or Rmd) file years from now and be able to reconstruct the analysis exactly. 
+
+
+
+
+
+\newpage
+
+\begin{center}
+    {\large\bf R Code Appendix}
+  \end{center}
+<<exploringPlots,eval=FALSE>>=
+@   
+<<coplot, eval=FALSE>>=
+@
+<<fit1,eval=FALSE>>=
+@   
+<<diagnostics,eval=FALSE>>=
+@
+<<logdiagnosics,eval=FALSE>>=
+@
+<<example, eval=FALSE>>=
+@
+<<backtransform, eval=FALSE>>=
+@
+
+
+
+
+
+   
+
+\end{document}

@@ -1,0 +1,189 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{float}
+
+  %% LaTeX margin settings:
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+\setlength{\maxwidth}{6.5in}
+
+\newcommand{\R}{{\sf R}}
+\newcommand{\bfbeta}{\mbox{\boldmath $\beta$}}
+\newcommand{\bfep}{\mbox{\boldmath $\epsilon$}}
+\newcommand{\bfD}{\mbox{\boldmath $D$}}
+\newcommand{\bfL}{\mbox{\boldmath $L$}}
+\newcommand{\bfR}{\mbox{\boldmath $R$}}
+\newcommand{\bfmu}{\mbox{\boldmath $\mu$}}
+\newcommand{\bfV}{\mbox{\boldmath $V$}}
+\newcommand{\bfX}{\mbox{\boldmath $X$}}
+
+\newcommand{\bfy}{\mbox{\boldmath $y$}}
+\newcommand{\bfz}{\mbox{\boldmath $z$}}
+\newcommand{\bfSig}{\mbox{\boldmath $\Sigma$}}
+\newcommand{\tr}{^{\sf T}}
+\newcommand{\inv}{^{-1}}
+
+\begin{document}
+
+<<setup, include=FALSE, cache=FALSE>>=
+opts_chunk$set(fig.width=5, fig.height=4, out.width='.5\\linewidth', dev='pdf', concordance=TRUE, size='footnotesize')
+options(replace.assign=TRUE,width=72, digits = 3, 
+        show.signif.stars = FALSE)
+@
+%% replace = with <-
+%% R output can go to 112 characters per line before wrapping
+%% print 3 significant digits
+
+
+\large
+\begin{center}
+{\Large \bf  Stat 505 Assignment 8 \vspace{.2in}} \\ 
+
+\end{center}
+October 31, 2014
+
+\begin{enumerate}
+
+\item \begin{enumerate}
+
+\item Approximately $68\%$ of the persons will have weights within a factor of $e^{-0.25}=0.78$ and $e^{0.25}=1.28$ of their predicted values from the regression.
+
+\item The plot on the log scale is below with dashed lines $\pm 2$ standard deviations from the regression line. Note that I simulated data points from this regression model so that I could add points to the scatterplot. I simulated $4$ log(weights) at every log(height).
+
+<<logplot, echo=F, warning=FALSE>>=
+set.seed(77)
+height <- c(seq(60,80,by=1))
+pred.logweight <- -3.5+2.0*log(height)
+obs.logweight <- matrix(c(rep(0,21),rep(0,4)),nrow=21,ncol=4)
+for(i in 1:21){
+height.feed <- 59+i
+obs.logweight[i,] <- -3.5+2.0*log(height.feed)+rnorm(4,0,0.25)
+}
+sim.dat <- as.data.frame(cbind(log(height),pred.logweight,obs.logweight))
+names(sim.dat) <- c("loght","predlogwt","rep1","rep2","rep3","rep4")
+plot(rep1~loght, data=sim.dat,xlim=c(4.094,4.382),ylim=c(4.2,5.8),xlab="Log Height", ylab="Log Weight", main="Log Weight vs. Log Height")
+points(sim.dat$loght,sim.dat$rep2)
+points(sim.dat$loght,sim.dat$rep3)
+points(sim.dat$loght,sim.dat$rep4)
+abline(a=-3.5,b=2.0)
+abline(a=-3.0,b=2.0,lty=5)
+abline(a=-4.0,b=2.0,lty=5)
+@
+
+This next plot shows the regression model on the original scale with dashed lines at a factor of $1.28$ away from the predicted values (which corresponds to $\pm 2$ standard deviations on the log scale).
+
+<<height,echo=FALSE, warnings=F>>=
+set.seed(92)
+height <- c(seq(60,80,by=1))
+pred.weight <- exp(-3.5)*height^2
+curve(exp(-3.5)*x^2, from=60,to=80, xlab="Height", ylab="Weight", ylim=c(0,400), main="Weight vs. Height")
+curve(exp(-3.0)*x^2, from=60,to=80, add=T, lty=5)
+curve(exp(-4.0)*x^2, from=60,to=80, add=T, lty=5)
+@
+
+\end{enumerate}
+
+\item \begin{enumerate}
+
+\item I dropped the rows with no income (``NA'') or $0$ income. As a result, I will restrict my inference to the population of people who reported some income. If we restrict our inference to this population, dropping those with no income or $0$ income is justified.\\
+
+The plots below show the relationship between log earnings and each of the predictors.  Log earnings seems to be related to education level, gender, and being black. It is not clear from the scatterplot whether being hispanic is related to log earnings. This may arise from the fact that the sample size for hispanics is low.
+
+
+<<readdat, echo=FALSE, fig.width=12, out.width="\\linewidth">>=
+earn <- read.csv("~/Documents/Stat505/Homework/HW8/earnings.csv", head=T)
+earn <- subset(earn, earn!="NA" & earn!=0)
+earn$black <- with(earn,ifelse(race==2,1,0))
+earn$female <- with(earn, ifelse(sex==1,0,1))
+earn$hisp <- with(earn, ifelse(hisp==1,1,0))
+log.earn <- log(earn$earn)
+par(mfrow=c(1,4))
+plot(log.earn~female, data=earn)
+plot(log.earn~black, data=earn)
+plot(log.earn~ed, data=earn)
+plot(log.earn~hisp, data=earn)
+@
+
+\item If we fit a regression model of log(earnings) on education,  one way to write our regression equation is:
+
+$$\widehat{mean(log(earnings)|education)}=\hat{\beta_0}+\hat{\beta_1}education$$
+
+Suppose we wanted to estimate the increase in $mean(earnings)$ for a one year increase in education. To do this, we would go about trying to backtransform the regression equation. But, we cannot do this because $mean(log(earnings)) \neq log(mean(earnings))$. But, we can say that\\ $median(log(earnings))=log(median(earnings))$ because the logarithm preserves ordering. If the model assumptions hold and the log(earnings) at any given education level are normally distributed, then \\
+$mean(log(earnings))=median(log(earnings))$. So, we have:
+
+\begin{align*}
+e^{\widehat{median}(log(earnings)|ed=x+1)-\widehat{median}(log(earnings)|ed=x)}&=e^{\hat{\beta_0}+\hat{\beta_1}(x+1)-(\hat{\beta_0}+\hat{\beta_1}x)} \\
+e^{log(\widehat{median}(earnings)|ed=x+1)-log(\widehat{median}(earnings)|x)}&=e^{\hat{\beta_1}} \\
+e^{log(\frac{\widehat{median}(earnings)|x+1}{\widehat{median}(earnings)|x})}=\frac{\widehat{median}(earnings|ed=x+1)}{\widehat{median}(earnings|ed=x)}&=e^{\hat{\beta_1}}
+\end{align*}
+
+That's why we say that the {\bf median} earnings is estimated to increase by a factor of $e^{\hat{\beta_1}}$ when we increase education level by one year. Gelman seems to avoid this issue, at least for now. He talks about the change in the predicted value for a one unit increase in the explanatory variable, but he doesn't state whether he is using the mean or the median as a target for prediction. \\
+
+Also, I will point out that the histogram of earnings, shown below, is right skewed. The median of the earnings is going to be a better measure of center than the mean. In a practical sense, the median of the earnings will be more informative to the reader than the mean of the earnings. So, it does make sense to interpret changes in the median rather than changes in the mean.
+\\
+
+<<hist, echo=FALSE, out.width="0.5\\linewidth">>=
+hist(earn$earn)
+@
+
+I fit a linear model of log earnings on education. The model summary is below. There is strong evidence that the mean of log earnings depends on education level (p-value$<0.0001$ from t-stat$=11.73$ on $1190$ df). For a one year increase in education level, the median of earnings is estimated to change by a factor of $1.13$ with an associated $95\%$ confidence interval from $1.11$ to $1.15$.
+
+
+<<model, echo=FALSE, results='asis', message=FALSE>>=
+lm.ed <- lm(log.earn~ed, data=earn)
+require(xtable)
+xtable(summary(lm.ed))
+@
+
+\item I would definitely want to add a female*education interaction because I would expect the wage disparity between men and women to be less for higher education levels. That is, I would expect the gender effect to be less extreme at higher education levels.
+I would also add female by ethnicity interactions because I suspect that the wage disparity between men and women is greater for black and hispanic people. \\
+
+%The education and female terms had small p-values with the sign I would expect, so I chose to leave these in the model. The hispanic term had a p-value of $0.09$ with the sign I would expect, so I chose to leave this term in the model. The black term had a large p-value with the opposite sign I would expect, but I chose to leave this term in the model because there is evidence of a female*black interaction. \\
+
+There is moderate evidence of a female by education interaction (p-value$=0.0402$) and the estimated interaction term has the sign I would expect because a positive number for the coefficient of this interaction term makes the wage disparity between men and women less at higher educations. I will leave the female*education term in the model. There is also moderate evidence of a female by black interaction (p-value$=0.0383$). I will leave this term in the model because it has a relatively small p-value, but it has the opposite sign than what I expected. A positive coefficient for this interaction term will make the gender effect less extreme for black people (I originally thought the gender effect would be greater for blacks). The same goes for hispanic people. There is moderate evidence of a female by hispanic interaction (p-value$=0.056$). Again, I will leave this term in the model because it has a relatively small p-value, but it has the opposite sign than what I expected. 
+
+
+
+<<addterms, echo=FALSE, results='asis'>>=
+lm.int <- lm(log.earn~ed+female+hisp+black+female*ed+female*black+female*hisp, data=earn)
+xtable(summary(lm.int))
+@
+
+\newpage
+
+\item See the diagnostic plots below. The homogeneity of variance and linearity assumptions look OK. There are a few points with high leverage, but based off their Cook's Distances they do not appear to be influential. There is a violation of the normality assumption that could be of concern. The distribution of the residuals appears to be left skewed with a long left tail. This departure from normality could affect our results. Our conclusions probably won't change for those p-values that were either really large or really small, but we may want to go back and acknowledge that those p-values between $0.01$ and $0.1$ may not be trustworthy. With this departure from normality, our standard errors may be off and the p-values could be artificially small (or artificially large).
+
+<<diagplots, echo=FALSE, fig.width=12, out.width="\\linewidth">>=
+par(mfrow=c(1,4))
+plot(lm.int)
+@
+
+\end{enumerate}
+
+\end{enumerate}
+
+<<logplot, echo=TRUE, eval=FALSE>>=
+@
+
+<<height, echo=TRUE, eval=FALSE>>=
+@
+
+<<readdat, echo=TRUE, eval=FALSE>>=
+@
+
+<<hist, echo=TRUE, eval=FALSE>>=
+@
+
+<<model, echo=TRUE, eval=FALSE>>=
+@
+
+<<diagplots, echo=TRUE, eval=FALSE>>=
+@
+
+<<addterms, echo=TRUE, eval=FALSE>>=
+@
+
+  \end{document}

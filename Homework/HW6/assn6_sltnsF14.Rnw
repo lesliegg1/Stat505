@@ -1,0 +1,390 @@
+\documentclass{article}
+
+  %% LaTeX margin settings:
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+\setlength{\maxwidth}{6.5in}
+
+ %% tell knitr to use smaller font for code chunks
+\ifdefined\knitrout
+\renewenvironment{knitrout}{\begin{footnotesize}}{\end{footnotesize}}
+ \else
+\fi
+\newcommand{\R}{{\sf R}}
+\newcommand{\bfbeta}{\mbox{\boldmath $\beta$}}
+\newcommand{\bfc}{\mbox{\boldmath $c$}}
+\newcommand{\bfD}{\mbox{\boldmath $D$}}
+\newcommand{\bfe}{\mbox{\boldmath $e$}}
+\newcommand{\bfep}{\mbox{\boldmath $\epsilon$}}
+\newcommand{\bfL}{\mbox{\boldmath $L$}}
+\newcommand{\bfR}{\mbox{\boldmath $R$}}
+\newcommand{\bfmu}{\mbox{\boldmath $\mu$}}
+\newcommand{\bfV}{\mbox{\boldmath $V$}}
+\newcommand{\bfX}{\mbox{\boldmath $X$}}
+\newcommand{\0}{\mbox{\boldmath $0$}}
+\newcommand{\I}{\mbox{\boldmath $I$}}
+
+\newcommand{\bfy}{\mbox{\boldmath $y$}}
+\newcommand{\bfz}{\mbox{\boldmath $z$}}
+\newcommand{\bfSig}{\mbox{\boldmath $\Sigma$}}
+\newcommand{\tr}{^{\sf T}}
+\newcommand{\inv}{^{-1}}
+
+\begin{document}
+
+<<setup, include=FALSE, cache=FALSE>>=
+# this is equivalent to \SweaveOpts{...}
+opts_chunk$set(fig.width=5, fig.height=4, out.width='.5\\linewidth', dev='pdf', concordance=TRUE)
+options(replace.assign=TRUE,width=112, digits = 3, max.print="72",
+        show.signif.stars = FALSE)
+@
+%% replace = with <-
+%% R output can go to 112 characters per line before wrapping
+%% print 3 significant digits
+%% If I ask to see a big matrix or something, only show 72 lines ##$
+
+\large
+\begin{center}
+{\Large \bf  Stat 505 Assignment 6 \vspace{.2in}} \\ 
+Solutions
+\end{center}
+
+\begin{enumerate}
+\item   In a study of soil properties, samples were taken on a 10
+    point by  25 point grid.   We'll work with two variables: response  Ca
+    (calcium concentration) and predictor pH (low numbers are acidic, high
+    numbers basic, 7 is neither).
+<<input,echo=F,message=FALSE>>=
+soils <- read.table("http://www.math.montana.edu/~jimrc/classes/stat505/data/soils.dat",head=TRUE)
+require(xtable, quietly = TRUE)
+require(MASS, quietly = TRUE)
+require(boot, quietly = TRUE)
+require(ggplot2, quietly = TRUE)
+require(nlme, quietly = TRUE)
+require(lattice, quietly = TRUE)
+@     
+    \begin{enumerate}
+    \item Make a scatterplot of the two variables and fit a model for
+      Ca based on pH. (Choose the form of the model based on the
+      scatterplot.)  Print the estimated coefficients and discuss the
+      relationship. \\
+<<soils1, out.width='3.3in', echo=F,results='asis', message=FALSE>>=
+#qplot( x=pH, y=Ca, data=soils) + theme_bw() + geom_smooth()
+xyplot( Ca ~ pH, data = soils, type=c("p","smooth"))
+xtable(CaFit0 <- lm ( Ca ~ pH, data = soils) )
+@       
+  {\it There seems to be a strong linear relationship between pH and
+    Ca.  As pH increases, so does Ca.  The estimated line of best fit
+    is $\widehat{y} = -5.87 +         1.58x$. The model explains 
+      \Sexpr{round( 100* summary(CaFit0)$r.squared,1) }\% of the
+      variance of calcium.}
+  
+
+\item  Plot the semivariogram of the residuals using euclidean
+      distance on column and row.  Does it appear
+      that there is some spatial correlation?  Make a guess about
+      values for range and nugget.
+
+<<Varioplot, results='hide' >>=
+calcium.gls0 <- gls(Ca ~ pH, data = soils)
+plot(Variogram(calcium.gls0, form=~column+row, max =15))
+@
+{\em I see a definite an upward trend in the variogram, I guess a range of 8 and nugget of .5}
+    \item  Fit the five forms of spatial correlation available in the
+       nlme library.  Compare them with each other and with the
+      original model.  Do any of the spatial correlation fits improve
+      AIC by more than 2 units?  Are any of them "significant"
+      improvements according to a LRT?
+<<spatfits,  results='asis', echo=FALSE,cache=TRUE >>=
+ calcium.glsE <-  update(calcium.gls0, corr = corExp(c(8,.5),form=~column + row, nugg=T))
+ calcium.glsL <-  update(calcium.gls0, corr = corLin(c(8,.5),form=~column + row, nugg=T))
+ calcium.glsS <-  update(calcium.gls0, corr = corSpher(c(14,.25),form=~column + row, nugg=T))
+ calcium.glsG <-  update(calcium.gls0, corr = corGaus(c(8,.5),form=~column + row, nugg=T))
+ calcium.glsR <-  update(calcium.gls0, corr = corRatio(c(5,.5),form=~column + row, nugg=T))
+myanova <- anova(calcium.gls0,  calcium.glsS, calcium.glsE, calcium.glsL, calcium.glsG, calcium.glsR)
+myanova$call <- NULL
+xtable(myanova)
+## summary(calcium.glsS )
+@      
+{\em  Each spatial structure improves likelihood enormously,
+  AIC by over 130,  and is a huge improvement (p-value $<0.001$).
+ The  spherical fit seems best, but only slightly better than exponential.}
+
+     \item  Use the plot function on the first model with no
+      spatial correlation and on the best of the spatial correlation
+      models.  Describe any problems you see.
+
+<<residplot1, results='hide', fig.width=15, out.width='\\linewidth',echo=F>>=
+require(gridExtra, quietly = TRUE)
+p1 <- plot(calcium.gls0,main="Naive Model Residuals, No Correlation", type=c("p","smooth"))
+p2 <- plot(calcium.glsS,main="Spherical Spatial Corr, Pearson Resid", type=c("p","smooth"))
+p3 <- plot(calcium.glsS, resid(.,type="n") ~ fitted(.), main="Spherical Spatial Corr, Normal Resid", type=c("p","smooth"))
+grid.arrange(p1,p2,p3, ncol = 3)
+@
+  
+{\em I found these plots disturbing when I first saw them, because I
+  expect residuals to be orthogonal to fitted values in plot 2, as
+  well as plot 1.  However, the Pearson residuals of the spatial model
+  show a linear trend.  This illustrates the fact that we are using a
+  projection operator which is not the PPO, and fits are not
+  orthogonal to residuals.}
+    \item  Redo the second plot
+      with normalized residuals instead of the default.
+     Read the help on residuals.gls.  Write out a matrix
+      equation to show how the normalized residuals are different from
+      the default residuals.  \\
+{\em See plot above right.  The
+  Pearson residuals are adjusted so that all have the same variance:
+  $\bfe_{pearson} = \bfD^{-1}\bfe$, where $\bfD$ is diagonal with
+  $\sqrt{s^2_i(1-h_{ii})}$ in the $(i,i)$ position.  However the
+  Pearson correction does
+  not account for the correlation structure.  The ``normalized'' residuals are
+  computed as $\widehat{\bfR}^{-1/2}\widehat{\bfD}^{-1} {\bfe}$ where $\bfR$ is
+  the correlation matrix generated by, in this case, the spatial
+  correlations and the $-1/2$ power means a Cholesky decomposition
+  of the inverse of $\widehat{\bfR}$.  The premultiplier actually
+  rotates the residuals so that they again appear orthogonal to the
+  fits.  This relates back to work we did right after proing the
+  Gauss--Markov Theorem. We showed that premultiplying our linear
+  model by $\bfV^{-1/2}$ gives a new linear model where
+  $\bfep\sim(\0,\sigma^2\I)$.  We can also write $\bfV^{-1/2}$ as $
+  {\bfR}^{-1/2}{\bfD}^{-1}$, so we are multiplying by
+  $\widehat{\bfV}^{-1/2}$ . }
+ 
+    \end{enumerate}
+
+  \item  Examine the data on rock cores available in R
+  as \verb|data(rock)| (see help, too).  The object is to model
+  log(permeability)  based on observations taken from image analysis
+  of core cross sections. Explanatory variables are the total area,
+  total perimeter,  and shape of microscopic pores. 
+  \begin{enumerate}
+    \item  Plot each predictor against  \verb|log(perm)|.
+      
+<<rockPlot1,echo=F, results='hide', fig.width=12,fig.height=4,out.width='\\linewidth', message=F>>=
+ data(rock)
+p1 <- xyplot(log(perm)~ area, data = rock, type = c("p","smooth")) 
+p2 <- xyplot(log(perm)~  peri, data = rock, type = c("p","smooth")) 
+p3 <- xyplot(log(perm)~ shape, data = rock, type = c("p","smooth")) 
+grid.arrange(p1,p2,p3, ncol = 3)
+@     
+ {\it These are not strong and not linear relationships. Shape has the
+ strongest correlation with log(perm).}
+
+
+\item  Fit a linear model and a robust linear model using all three
+      predictors.  Use qqnorm and qqline on the plain residuals.
+      
+<<rockPlot2, results='hide', out.width='.8\\linewidth', fig.width=8,echo=F,warning=F>>=
+summary(rock.lm <- lm(log(perm) ~ ., data=rock))$coef
+summary(rock.rlm <- rlm(log(perm) ~ area + shape + peri, data=rock, meth="MM", maxit = 50))$coef
+par(mfrow=c(1,2))
+plot(rock.lm, which=2)
+qqnorm(resid(rock.rlm))
+qqline(resid(rock.rlm))
+@ 
+  {\it Coefficients for area and perimeter match well, and shape
+  coefficient differs by only SE/4, so robust fit doesn't change
+  things much.  I see no problems in the residual plots. The right
+  tail of the residuals is slightly shorter than for a normal
+  distribution. The robust residuals are not very different from the
+  regular OLS residuals.} %'
+
+
+    \item  
+      Due to some concern about normality, you are asked to give a
+      non-normality-based estimate of the coefficient for  shape.
+      \begin{enumerate}
+        \item Discuss whether model-based or case-based bootstrapping would be
+          most appropriate in this setting.  (Here each core is considered a
+          random draw from some population of cores of interest.  Ignore that
+          fact that these observations are really repeated measurements since
+          each core was measured optically 4 times, but the permeability only
+          once.)\\
+   {\it  Use case-based bootstrapping because the $\bf X$ values are
+     random and depend on the sample drawn.  It is not the only $\bf X$
+     of interest, rather a representative data matrix from a bigger
+     population of data (core samples).}
+
+          
+        \item  Provide a 95\% bootstrap CI for  the coefficient for  shape.
+
+<<rock.boot, echo=F, results='hide',warning=F >>=
+rockcoef <- function(data,i)  coef(lm(log(perm) ~ ., data = data[i,]))
+rock.boot <- boot(rock, rockcoef,R=499)
+rockBootCI <- boot.ci(rock.boot, ind=4, conf=.95)
+@ 
+ {\it The 95\% BCa interval for shape given area and perimeter are
+   in the model is    (\Sexpr{rockBootCI$bca[,4]},
+   \Sexpr{rockBootCI$bca[,5]}), which contains 0, so is seems 
+   that shape does not add much to the model.} 
+       \end{enumerate}
+      \end{enumerate}
+
+\item  In a study of milkfat in yogurt,\\ 
+  \begin{minipage}[b]{.50\linewidth}
+     samples known to have 3\% milkfat 
+  were sent to four labs, and the labs were told to use either method
+  A or B (assigned at random) to measure the milkfat. The primary
+  concern is that method A might give higher readings than measure B.
+  We need to look for an interaction between method and lab.\vspace*{1cm}
+  \end{minipage}
+<<fat1, echo=F, results='hide',  out.width='.45\\linewidth'  >>=
+milkfat <- read.table("http://www.math.montana.edu/~jimrc/classes/stat505/data/milkfat.dat",head=T)
+milkfat$lab <- factor(milkfat$lab)
+ qplot(  x=lab, y=fat, data=milkfat, colour=method, geom = "boxplot") + theme_bw() 
+@ 
+  \begin{enumerate}
+    \item  Fit a 2-way ANOVA model with interaction and discuss the
+      results (including diagnostics).
+<<twoWay, echo=FALSE, results='asis',fig.width=9, out.width='\\linewidth'>>=
+milk.fit <- lm(fat ~ .^2, milkfat)
+xtable(anova(milk.fit))
+par(mfrow=c(1,3))
+plot(milk.fit, which=1:3)
+@ 
+ {\em Both main effects and the interaction have small p-values, so
+   there are strong lab and method effects and the method effects
+   change with lab. I see no problems in the residual diagnostic
+   plots.  There is no fan in the residuals and the residuals are just
+   slightly shorter tailed than a normal distribution. } 
+    \item  To avoid the normality assumption, we will also use a
+      bootstrap approach. Decide whether case-based or model-based
+      bootstrapping is more appropriate and explain why.\\
+      {\em These are the only labs and methods of interest, and hence
+        there is only one $\bfX$ matrix.  Therefore model based
+        bootstrap is appropriate.}
+        
+    \item   Use your chosen bootstrap method to test to see if
+      \begin{enumerate}
+      \item  Are the interaction terms needed?  Use an approach
+        similar to the extra sum of squares F test, but via bootstrapping.
+<<labInteractionBoot, echo=F,results='hide'>>=
+XtXinv <- summary(milk.fit)$cov.unscaled
+X <- model.matrix(milk.fit)
+Ct <- cbind(matrix(0,3,5),diag(3))
+varCbetahat <-  t(Ct) %*% solve(Ct%*%XtXinv%*%t(Ct)) %*%  Ct
+ middle <- X %*% XtXinv %*% varCbetahat %*% XtXinv %*% t(X)
+ fakeF <- function(e,i, df){
+    ## e is the vector of residuals from our model
+    ##  i is a sample -- with replacement-- of integers 1 to n=length(e)
+    ##  df = degrees of freedom for the model
+    em <- e[i]                 ## bootstrapped sample
+    n <- length(e)
+    s2 <- var(em)/df  * (n - 1) ## estimated variance
+    as.numeric(em %*% middle %*% em/s2)
+ }
+ mresid <- resid(milk.fit)/sqrt(1-hat(X))
+bootFs <- rep(0,499)  ## set up a vector for storage.
+set.seed(45678)
+ for(i in 1:499) bootFs[i] <- fakeF(mresid,sample(39,repl=TRUE),31)
+ summary(bootFs)
+  Ctbetahat <- Ct %*% coef(milk.fit)
+ testF <-  t(Ctbetahat) %*% solve(Ct%*%XtXinv%*%t(Ct) ) %*%  Ctbetahat/  summary(milk.fit)$sigma^2
+pval1 <- (1+ sum(which(bootFs >= as.numeric(testF) )))/500
+   ## Tans method
+  null.model <- lm(fat ~ method + lab, milkfat)
+  null.fits <- fitted(null.model)
+
+mresd <- resid(null.model)/sqrt(1-hat(model.matrix(null.model)))
+
+interactionF <- function(e,i){
+    new.y <- null.fits + e[i]
+    anova(lm(new.y ~ method * lab, milkfat))$F[3]
+  }
+bootF2 <- rep(0,499)
+  for(i in 1:499) bootF2[i] <- interactionF(mresd, sample(39,repl=TRUE))
+ summary(bootF2)
+pval2 <- (1+ sum(which(bootF2 >=  interactionF(mresd,1:39))))/500
+@         
+  {\em I used 2 methods for computing a bootstrap F test, one using a
+    contrast, as in the notes, gave a p-value of \Sexpr{pval1} because
+    the test stat, \Sexpr{testF} was larger than the largest of 500
+    bootstrapped F values under $H_0$.
+    The other collected F stats from the anova command where data were
+    generated under the null model of no interaction, then tested
+    under the full model with interaction gave a maximum F (under the
+    null) of \Sexpr{max(bootF2)} compared to an observed $F = 22.2$, so
+      again the p-value is less than 1/500.}  
+      \item  If the interaction is ignorable, refit without it.\\
+        {\em The interaction has a p-value $< .0001$ under normality
+          assumption, or of 1/500 for the bootstrap, so we can't
+          drop it.}
+      \item  Provide a 90\% confidence interval estimate of the method
+  effect after adjusting out lab effects.
+<<method.ci, echo=FALSE, results='hide', cache=TRUE,warning=FALSE >>=
+summary(milk.fit <- lm(formula = fat ~ lab + method:lab, data = milkfat))
+ ct <- c(0,0,0,0,1,1,1,1)/4
+ dim(ct) <- c(1,8)
+ center <- ct %*% coef(milk.fit)
+ stdErr <- sqrt(ct %*% vcov(milk.fit) %*% t(ct))
+ (normalCI <- center + c(-1,1)*1.645 * stdErr)
+  #-1.360049 -1.189201
+mfits <- fitted(milk.fit)
+milkfat$ystar <- 1:39*0
+ methodB <- function(data, i){
+    # print(mfits)
+     milkfat$ystar <- mfits + data[i]
+   ct %*% coef(update(milk.fit, ystar ~ .))
+   }
+ methodB(resid(milk.fit),sample(1:39,39, replace=TRUE))
+ bootB.CI <- boot(data=resid(milk.fit),  methodB, 999)
+ bca <- boot.ci(bootB.CI, conf=.90, type = "bca")$bca ##  (-1.35, -1.20 )  )
+@         
+{\em You should struggle a bit here,  because we just said that there is a strong lab $\times$ method interaction, so we can't estimate a method effect without considering labs.  I think it makes sense to think of the average difference in method means across the four labs.  If our model is 
+$$y_{ijkm} = \mu + \tau_i + \alpha_j + \delta_{ij} + \epsilon_{ijkm}$$ where $i=1,2$ is the method effect and $j=1,2,3,4$ is the lab effect, then we want to estimate $\frac{1}{4}\sum_{j=1}^4 \tau_2-\tau_1+\delta_{2j}-\delta_{1j}$.  Using the usual R parametrization, that is 
+$\bfc^T\bfbeta$ where $\bfc^T= (0\ 4\ 0\ 0\ 0\ 1\ 1\ 1)/4$.  A cute trick is to fit the interaction with no method main effect as in \verb|lm(fat ~ lab + method:lab)|.  You would then get four estimates of the method effect, one for each lab, and could more easily average them. 
+We then build a function to compute the contrast (or mean) for a new sample of 39 rows of data, and bootstrap it. The Bca interval is  (\Sexpr{bca[4]}, \Sexpr{bca[5]}),
+  which closely matches the normality based one (see appendix).
+  Alternatively, you could give four CI's, one for each lab, which
+  would be most appropriate if these were the only possible four labs
+  to use.}\vspace{1cm}
+      \end{enumerate}
+    \end{enumerate}
+  \end{enumerate}
+
+
+\begin{center}
+  {\large\bf R Code}
+\end{center}
+First, Here's code to use to see how far really 'normal' data can get from the line:
+
+<<normality,fig.width=10,fig.height=10,out.width='.875\\linewidth'>>=
+randqqplot <- function(n){
+  y=rnorm(n)
+  qqnorm(y)
+  qqline(y)
+}
+par(mfrow=c(3,3))
+set.seed(123)
+for(i in 1:9) randqqplot(48)
+@
+Only one plot fits the straight line well.
+<< ref.label='input'>>=
+@ 
+<<ref.label='soils1',results='asis',fig.keep='none', warning=FALSE>>=
+@ 
+<<ref.label='Varioplot',fig.keep='none' >>=
+@ 
+<<ref.label='spatfits', eval=FALSE >>=
+@ 
+<<ref.label='residplot1',fig.keep='none'>>=
+@ 
+<<ref.label='rockPlot1', fig.keep='none', message=F>>=
+@ 
+<<ref.label='rockPlot2', fig.keep='none', warning=F>>=
+@ 
+<<ref.label='rock.boot' >>=
+@ 
+<<ref.label='fat1', fig.keep='none'  >>=
+@ 
+<<ref.label='twoWay',results='asis', fig.keep='none'>>=
+@ 
+<<ref.label='labInteractionBoot'>>=
+@ 
+<<ref.label='method.ci', eval=FALSE >>=
+@ 
+  \end{document}

@@ -1,0 +1,100 @@
+\documentclass[12pt]{article}
+\usepackage{float}
+\usepackage{enumerate}
+\usepackage{setspace}
+
+ %% LaTeX margin settings:
+\setlength{\textwidth}{7.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{-.7in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-2.0cm}
+
+ %% tell knitr to use smaller font for code chunks
+\ifdefined\knitrout
+\renewenvironment{knitrout}{\begin{footnotesize}}{\end{footnotesize}}
+ \else
+\fi
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+
+
+
+
+<<setup, include=FALSE, cache=FALSE>>=
+# this is equivalent to \SweaveOpts{...}
+opts_chunk$set(fig.width=5, fig.height=4, out.width='\\linewidth', dev='pdf', concordance=TRUE)
+options(replace.assign=TRUE,width=112, digits = 3, max.print="72")
+@
+
+
+{\Large \bf Homework $0.5$} \\ \\
+{\indent Leslie Gains-Germain}
+
+\begin{doublespace}
+
+
+\begin{enumerate}
+
+\item On what computer will you be doing your homework? (Needs a word processor and R). Expected answers: my own laptop/desktop, Student lab computers in Reid/Roberts, my office computer, math dept machines, etc. 
+
+\textit{My own laptop.}
+
+\begin{enumerate}
+\item If it's not already there, install R from CRAN.
+\item If it's not already there, install RStudio from Rstudio.org.
+\item We also need LaTeX which is texlive on unix, proText or MikTeX with TeXstudio or Texmaker on windows, and MacTeX on Macs. They are all free. An alternative to learning LaTeX is to use markdown instead. It can create nice html pages and most recently is supposed to play nicely with MSWord. However, you still need to use LaTex for math, so you might as well bite the bullet. 
+
+\textit{I use Rstudio and Texmaker.}
+\end{enumerate}
+
+\item Startup Rstudio session.
+
+\begin{enumerate}
+\item From the R help menu click "About R". What version of R are you using?
+
+\textit{I am using Rstudio version 0.98.1028. The version of R I'm using is 2.14.1-1. I was thinking of upgrading to R 3.1.1, but I saw some stuff online of people having issues upgrading to R 3.1.1 with the version of Ubuntu that I have, Ubuntu 12.04. Any thoughts on this? Is R 3.1.1 very different than 2.14.1-1?}
+
+\item Type help(boxplot) in the R editor. Near the bottom of the help page you should see this line Using 'at = ' and adding boxplots -- example idea by Roger Bivand -- Run the code that follows by copying it into the R editor. Also copy it into the email you are sending me.
+
+\item Describe what you see in the plot. Does either supplement seem to increase tooth growth in guinea pigs?
+
+<<guineapig, echo=FALSE, out.width='.5\\linewidth'>>=
+boxplot(len ~ dose, data = ToothGrowth,
+        boxwex = 0.25, at = 1:3 - 0.2,
+        subset = supp == "VC", col = "yellow",
+        main = "Guinea Pigs' Tooth Growth",
+        xlab = "Vitamin C dose mg",
+        ylab = "tooth length",
+        xlim = c(0.5, 3.5), ylim = c(0, 35), yaxs = "i")
+boxplot(len ~ dose, data = ToothGrowth, add = TRUE,
+        boxwex = 0.25, at = 1:3 + 0.2,
+        subset = supp == "OJ", col = "orange")
+legend(2, 9, c("Ascorbic acid", "Orange juice"),
+       fill = c("yellow", "orange"))
+@
+
+\textit{At vitamin C doses of $0.5$ mg and $1$ mg, the median tooth length of those guinea pigs taking orange juice is longer than the median tooth length of those guinea pigs taking ascorbic acid. At a vitamin C dose of $2$ mg, the median tooth length of those pigs taking orange juice is about the same as the median tooth length of those pigs taking ascorbic acid. Among those guinea pigs taking ascorbic acid, we see the most variability in tooth lengths at a vitamin C dose of $2$ mg. Among those guinea pigs taking orange juice, we see the least variability in tooth lengths at a vitamin C dose of $2$ mg.}
+\\
+
+\textit{Since we do not know if guinea pigs were randomly assigned to treatment groups, we cannot say that orange juice causes increased tooth growth at lower doses of Vitamin C. Since we do not know if the guinea pigs in the sample were selected randomly, the results cannot be generalized to any larger population of guinea pigs.}
+
+
+
+\end{enumerate}
+
+\item Use the MSU library to find and download this article: Effects of classroom cell phone use on expected and actual learning by: Rebecca B. Barnes , Paul W. Brecht , Christina N. Carpenter , Jasmin D. Chacon , Arnold D. Froese and Denyse A. Inman. College Student Journal. 46.2 (June 2012): p323
+    Read it before class and be ready to discuss how their study was conducted, how they report their results, and the inferences they draw. 
+
+\textbf{Code chunks}
+
+<<guineapig, eval=FALSE, tidy=FALSE>>=
+@
+
+\end{enumerate}
+
+\end{doublespace}
+
+\end{document}

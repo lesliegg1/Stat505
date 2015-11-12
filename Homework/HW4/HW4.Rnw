@@ -1,0 +1,259 @@
+\documentclass{article}
+\usepackage{graphicx, verbatim, fancyvrb, setspace,listings}
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+\def\fs{\footnotesize}
+
+\newcommand{\R}{{\sf R}}
+\newcommand{\bfbeta}{\mbox{\boldmath $\beta$}}
+\newcommand{\bfD}{\mbox{\boldmath $D$}}
+\newcommand{\bfL}{\mbox{\boldmath $L$}}
+\newcommand{\bfR}{\mbox{\boldmath $R$}}
+\newcommand{\bfmu}{\mbox{\boldmath $\mu$}}
+\newcommand{\bfV}{\mbox{\boldmath $V$}}
+\newcommand{\bfX}{\mbox{\boldmath $X$}}
+
+\newcommand{\bfy}{\mbox{\boldmath $y$}}
+\newcommand{\bfz}{\mbox{\boldmath $z$}}
+\newcommand{\bfSig}{\mbox{\boldmath $\Sigma$}}
+
+ \begin{document}
+\large
+\begin{center}
+{\Large \bf  Stat 505 Assignment 4 \vspace{.2in}} \\
+\end{center}
+
+Due: September 26
+
+We have data on fish caught in the Blackfoot River by Fish, Wildlife,
+\& Parks personnel over a number of years.  They used electrofishing
+equipment to attract the fish to the boat, then dipped them out of the
+water with nets, measured length in mm and weight in grams. They are
+often working in cold conditions in late autumn or early spring, so
+some measurement error is expected.  This is real data, so some
+cleaning is necessary!
+
+These data are not from a random sample.  The goal is to catch all
+fish within a reach or section of the Blackfoot River every few years
+to assess the health of the population.  Changes over years are
+important to the biologists.
+
+<<setup, include=FALSE, cache=FALSE>>=
+# this is equivalent to \SweaveOpts{...}
+opts_chunk$set(fig.width=5, fig.height=4, out.width='\\linewidth', dev='pdf', concordance=TRUE, size = 'footnotesize')
+options(replace.assign=TRUE,width=72, digits = 3, max.print="72",
+        show.signif.stars = FALSE)
+blackft <- read.csv("~/Documents/Stat505/Homework/HW4/BlackfootAllFish.csv")
+@ 
+\begin{enumerate}
+\item 
+Remove Bull trout and WCT (whitefish) and any fish with missing weight.
+
+<<remove, echo=FALSE>>=
+blackft <- subset(blackft, blackft$weight!="NA" & blackft$species!="WCT" & blackft$species!="Bull")
+blackft$species <- factor(blackft$species, levels=c("Brown","RBT"))
+@
+
+
+\item 
+Use a plot to show how the proportion of RBT changes with year and
+section. Does one section always have a higher proportion RBT than the
+other? 
+
+
+
+<<plot1, echo=FALSE, eval=FALSE>>=
+lst <- tapply(blackft$species, blackft[,c(5,7,6)], length)
+lst1 <- as.data.frame(lst)
+prop.john <- lst1[,2]/(lst1[,1]+lst1[,2])
+prop.scotty <- lst1[,4]/(lst1[,3]+lst1[,4])
+plot(c(rep(-1,10))~unique(blackft$year), ylim=c(0,1), ylab="Proportion", xlab="year")
+points(prop.john~unique(blackft$year), type="b")
+points(prop.scotty~unique(blackft$year), type="b", lty=2)
+legend(.5, .4, c("Johnsrud", "ScottyBrown"), lty = c(1,2),
+       text.col = "green4",
+       merge = TRUE, bg = "gray90")
+@
+
+\includegraphics[scale=0.5]{prop.png}
+
+{\it Section Johnsrud has a higher proportion of RBT across all years.}
+
+\item 
+Plot weight as a function of length, separating into panels by species
+and year. 
+
+<<plot2, echo=FALSE, message=FALSE, fig.width=10>>=
+require(lattice)
+blackft$year <- factor(blackft$year)
+#with(blackft, xyplot(weight~length|year, grid=TRUE, group=species, auto.key=TRUE))
+with(blackft, xyplot(weight~length|year+species, grid=TRUE, auto.key=TRUE))
+@
+
+
+What seems to be
+the lower limit of length that is catchable with this equipment?
+Filter out fish you deem too short to have actually been caught.
+<<filter, echo=FALSE>>=
+blackft <- subset(blackft, blackft$length>36)
+@
+
+{\it The lower limit of fish that is catchable with this equipment seems to be about $64$ mm which is about $2.5$ inches. After the above adjustments are made to the dataset, there are only $5$ fish smaller than $64$ mm, and all five are less than $36$ mm. $36$ mm is about a $1.4$ inch fish, and no matter how fine meshed of a net the researchers are using, I think it would be very difficult to prevent that size of a fish from swimming through the holes in the net.  }
+
+\item 
+Which pairs of (weight, length) combinations seem difficult to believe?
+Filter these out as well.\\
+One way to look for unusual pairs is to use what 
+fisheries biologists call a ``condition index'' 
+$w^{1/3}/l*50$ where $w$ = weight and $l$ = length.
+If fish are highly unusual in this scale, it would be best to remove
+them, but you might need to compare only within species and within year. 
+ (If years are different in this regard, we should make a
+note for discussion with the biologists.)
+
+
+<<unusual, echo=FALSE, message=FALSE, out.width="0.5\\linewidth">>=
+blackft$condind <- 50*blackft$weight^(1/3)/blackft$length
+require(ggplot2)
+condindhigh <- function(x)(50*x^(1/3)/2)
+condindlow <-  function(x)(50*x^(1/3)/.6)
+qplot(x=weight, y=length, data=subset(blackft,species="Brown"), main="Brown Trout")+stat_function(fun = condindhigh, colour = "red")+stat_function(fun = condindlow, colour = "green")
+condind1 <- function(x)(50*x^(1/3)/2.1)
+condind2 <-  function(x)(50*x^(1/3)/.6)
+qplot(x=weight, y=length, data=subset(blackft,species="RBT"), main="RBT")+stat_function(fun = condind1, colour = "red")+stat_function(fun = condind2, colour = "green")
+@
+
+
+{\it Based on the plots above, for brown trout I will delete all fish with condition index less than $0.6$ or greater than $2$. For RBT, I will delete all fish with condition index less than $0.6$ and greater than $2.1$.}
+
+<<cutdown, echo=FALSE>>=
+blackft1 <- subset(blackft, species=="RBT" & condind<2 & condind>0.6)
+blackft2 <- subset(blackft, species=="Brown" & condind<2.1 & condind>0.6)
+blackft <- rbind(blackft1,blackft2)
+@
+
+\item Build a model for weight as a function of length.
+
+We used a geometric argument to link tree volumes to height and girth.
+If fish bodies are of constant density (mass per unit volume), come up
+with a similar argument for what scale to use to model weight as a
+function of length.
+
+Include species and year in an appropriate way.
+
+<<wtlength, echo=FALSE>>=
+#yr <- as.numeric(blackft$year)
+lm.add <- lm(log(weight)~log(length)+species+year, data=blackft)
+@
+
+{\it If fish bodies are of constant density, the weight of the fish is a function of the length cubed. Because we know that there is a multiplicative relationship between length and weight, it makes sense to log transform weight so that our interpretation will be in terms of multiplicative changes.}
+
+ \item Fit a linear model for log(weight) on log(length).  Does the
+   intercept depend on site and or species?  Does the slope?  Fit a
+   model with main effects and appropriate interactions (let's leave
+   out the 3-way interaction).  Interpret each coefficient estimate.
+   Explain exactly what effect each is measuring.
+   
+{\it The answers to these questions are in my discussion below.}
+
+\item 
+  Write up your model including a discussion of the  diagnostic plots.
+  
+{\bf \large Introduction}
+
+{\it Information was collected about the lengths, weights, and species of fish in the Blackfoot river from $1989$ to $2006$. The section and year in which they were caught was also recorded.}
+
+{\bf \large Statistical Prodedures}
+
+{\it I first looked at some plots to decide which interaction terms to include in the model. The log(length) effect appears to depend on species. This we would expect biologically. Due to differences in habitat, I also expected that the relationship between log(length) and log(weight) would depend on section. Even though the scatterplot does not suggest a log(length) by section interaction, I still included it in the model because of the biological argument. I didn't think any major changes could happen in the time span of this study, so I chose not to include a log(length) by year interaction. The paneled plot above supports this decision, showing that, within a species, the relationship between log(length) and log(weight) doesn't change much across years. Note that I considered treating year as a continuous variable, but in the end I chose to treat it as a factor because  I didn't see a linear trend in log(weight) across year (and our sample size is so large I wasn't worried about the loss of df).}
+
+   
+
+
+<<more, echo=FALSE, outwidth=".5\\linewidth", include=FALSE>>=
+require(lattice)
+xyplot(weight~log(length)|species, data=blackft)
+xyplot(weight~log(length)|section, data=blackft)
+@
+
+\includegraphics[scale=0.3]{species.png} 
+\includegraphics[scale=0.3]{section.png}
+
+{\it I fit a model of log(weight) on log(length), species, year, and section as well as the above mentioned two factor interactions. The diagnostic plots are below. There are some concerns. It seems that the spread of the residuals decreases with increasing fitted values. As a result, we see a downward trend in the scale-location plot. Additionally, the normal Q-Q plot reveals a long-tailed distribution. But with this large of a sample size the central limit theorem kicks in and our sampling distribution of sample means is normally distributed even when the normality and HOV assumptions are not met. The assumption of independence, however, is still important and could cause concern if researchers have reason to be believe it is not met.}
+
+<<model, echo=FALSE>>=
+yr <- as.numeric(blackft$year)
+lm.fit <- lm(log(weight)~log(length)+species+year+section+log(length)*species+log(length)*section, data=blackft)
+@
+
+<<diagplots, echo=FALSE, fig.width=10>>=
+par(mfrow=c(1,4))
+plot(lm.fit)
+@
+
+{\bf \large Summary of Findings} \\
+{\it There is strong evidence that log(weight) depends on log(length), species, year, and section (p-values$<0.0001$). There is also strong evidence that the relationship between log(weight) and log(length) depends on species and section (p-values$<0.0001$). For every doubling of length, the mean weight of brown trout in section Johnsrud is estimated to increase by a factor of $7.1$ with a $95\%$ confidence interval from $6.96$ to $7.18$. Holding all other variables constant, the intercept is estimated to increase by $0.589$ when going from brown trout to rainbow trout, with a $95\%$ confidence interval from $0.435$ to $0.696$. The intercept is estimated to decrease by $0.255$ when going from section Johnsrud to section Scotty Brown, with a $95\%$ confidence interval from a $0.491$ to a $0.257$ unit decrease. The intercept is estimated to change by the amounts shown in the below table for each year. The slope is estimated to decrease by $0.1117$ when going from brown trout to rainbow trout in section Johnsrud, with a $95\%$ confidence interval from a $0.13$ to a $0.09$ decrease. The slope for rainbow trout is estimated to increase by $0.0527$ when going from section Johnsrud to section ScottyBrown with a $95\%$ confidence interval from $0.0454$ to $0.0861$. }
+
+<<letsee, echo=FALSE,results='asis', message=FALSE>>=
+require(xtable)
+xtable(anova(lm.fit))
+xtable(summary(lm.fit))
+@
+
+
+\newpage 
+{\bf \large Scope of Inference}
+
+{\it There is no indication that fish were randomly selected from the fish in the Blackfoot river, so inference does not extend beyond the fish sampled. In fact, it is probably safe to assume that this was a convenience sample because those fish caught were probably the ones that were easiest to target. \\
+
+Fish were not randomly assigned lengths, so statistically we cannot establish a causal relationship between length and weight, but we can acknowledge the physical law that increasing length must be accompanied by increasing weight.}
+
+   
+
+  
+\end{enumerate}
+
+
+\newpage
+
+\begin{center}
+  {\large\bf R Code Appendix}
+\end{center}
+
+<<plot1, eval=FALSE>>=
+@
+
+<<plot2, eval=FALSE>>=
+@
+
+<<filter, eval=FALSE>>=
+@
+
+<<unusual, eval=FALSE>>=
+@
+
+<<cutdown, eval=FALSE>>=
+@
+
+<<wtlength, eval=FALSE>>=
+@
+
+<<more, eval=FALSE>>=
+@
+
+<<model, eval=FALSE>>=
+@
+
+<<diagplots, eval=FALSE>>=
+@
+
+<<letsee, eval=FALSE>>=
+@
+
+
+
+
+  \end{document}

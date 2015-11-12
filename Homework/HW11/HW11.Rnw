@@ -1,0 +1,343 @@
+\documentclass{article}
+
+  %% LaTeX margin settings:
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+\setlength{\maxwidth}{6.5in}
+
+\newcommand{\R}{{\sf R}}
+\newcommand{\bfbeta}{\mbox{\boldmath $\beta$}}
+\newcommand{\bfep}{\mbox{\boldmath $\epsilon$}}
+\newcommand{\bfD}{\mbox{\boldmath $D$}}
+\newcommand{\bfL}{\mbox{\boldmath $L$}}
+\newcommand{\bfR}{\mbox{\boldmath $R$}}
+\newcommand{\bfmu}{\mbox{\boldmath $\mu$}}
+\newcommand{\bfV}{\mbox{\boldmath $V$}}
+\newcommand{\bfX}{\mbox{\boldmath $X$}}
+
+\newcommand{\bfy}{\mbox{\boldmath $y$}}
+\newcommand{\bfz}{\mbox{\boldmath $z$}}
+\newcommand{\bfSig}{\mbox{\boldmath $\Sigma$}}
+\newcommand{\tr}{^{\sf T}}
+\newcommand{\inv}{^{-1}}
+
+\usepackage{float}
+
+\begin{document}
+
+<<setup, include=FALSE, cache=FALSE>>=
+opts_chunk$set(fig.width=5, fig.height=4, out.width='\\linewidth', dev='pdf', concordance=TRUE, size='footnotesize')
+options(replace.assign=TRUE,width=72, digits = 3, 
+        show.signif.stars = FALSE)
+@
+%% replace = with <-
+%% R output can go to 112 characters per line before wrapping
+%% print 3 significant digits
+
+
+\large
+\begin{center}
+{\Large \bf  Stat 505 Assignment 11 \vspace{.2in}} \\ 
+{\it Leslie Gains-Germain}
+
+\end{center}
+November 17, 2014
+\begin{enumerate}
+\item \begin{enumerate}
+\item {\it I built a while loop to do this. The loop keeps track of the number of shots taken and the proportion of shots made. See my code in the appendix.}
+<<while, out.width="\\linewidth", fig.width=10, echo=FALSE>>=
+n.shots <- rep(0,1000)
+propMade <- rep(0,1000)
+for(i in 1:1000){
+keep.going <- 0
+score <- 0
+shots <- 0
+miss <- 0
+prev.miss <- 0
+ while(keep.going<2){
+   shots <- shots+1
+   prev.miss <- miss
+   miss <- ifelse(runif(1,0,1)>.6,1,0)
+   score <- score+ifelse(miss==1,0,1)
+   keep.going <- prev.miss+miss
+   #keep.going <- ifelse(miss+prev.miss==2,FALSE,TRUE)
+    ## set keep.going to FALSE when condition is met
+ }
+n.shots[i]<-shots
+propMade[i] <- score/shots
+#print(unlist( list( n.shots= shots, propMade = score / shots)))
+}
+@
+
+\item {\it I wrapped the while loop inside a for loop. For each ``game'', the number of shots taken and the proportion of shots made is recorded. I showed the results for the first six games. The mean and standard deviation of the number of shots taken in the $1000$ games is \Sexpr{mean(n.shots)} and \Sexpr{sd(n.shots)} respectively.}
+<<next, out.width="\\linewidth", fig.width=10, echo=FALSE>>=
+data <- cbind(n.shots,propMade)
+head(data)
+mean(n.shots)
+sd(n.shots)
+par(mfrow=c(1,2))
+plot(density(n.shots), xlab="Number of Shots")
+@
+
+\item Below is a scatterplot of number of shots and proportion made.
+
+<<props, out.width="\\linewidth", fig.width=10, echo=FALSE>>=
+plot(propMade~n.shots, main="Proportion Made vs. Number of Shots")
+@
+
+
+\end{enumerate}
+
+\item \begin{enumerate}
+\item {\it In general, we sample from a known population distribution, then using this sample we build a confidence interval for a known population parameter. Then, we note whether the interval contains the known population parameter. We do this many times ($1000$ or $10000$ times), and this gives us an idea of the proportion of times that our confidence interval contains the true parameter.}
+\item {\it My \verb+cover+ function outputs the wald confidence intervals and the proportion of intervals that covered the true parameter. Here is an example:}
+<<build, echo=FALSE>>=
+cover <- function (n,p,Nreps,confidence){
+phat.vec<-rbinom(Nreps,n,p)/n
+wald.ci.l<-phat.vec+qnorm((1-confidence)/2)*sqrt(phat.vec*(1-phat.vec)/n)
+wald.ci.u<-phat.vec-qnorm((1-confidence)/2)*sqrt(phat.vec*(1-phat.vec)/n)
+cis <- matrix(c(wald.ci.l,wald.ci.u),nrow=Nreps,ncol=2)
+prop.cover <- sum(ifelse(cis[,1]<p & cis[,2]>p,1,0))/Nreps
+finals <-list("waldcis"=cis,"prop.cover"=prop.cover) 
+return(finals)
+}
+cover(20,0.5,10,0.95)
+@
+
+\item {\it My \verb+cover.wilson+ function outputs the wilson confidence intervals and the proportion of intervals that contain the true parameter. Here is an example:}
+<<buildwilson, echo=FALSE>>=
+cover.wilson <- function (n,p,Nreps,confidence){
+ptilde.vec<-(rbinom(Nreps,n,p)+2)/(n+4)
+wald.ci.l<-ptilde.vec+qnorm((1-confidence)/2)*sqrt(ptilde.vec*(1-ptilde.vec)/(n+4))
+wald.ci.u<-ptilde.vec-qnorm((1-confidence)/2)*sqrt(ptilde.vec*(1-ptilde.vec)/(n+4))
+cis <- matrix(c(wald.ci.l,wald.ci.u),nrow=Nreps,ncol=2)
+prop.cover <- sum(ifelse(cis[,1]<p & cis[,2]>p,1,0))/Nreps
+finals <-list("wilsoncis"=cis,"prop.cover"=prop.cover) 
+return(finals)
+}
+cover.wilson(20,0.5,10,0.95)
+@
+
+
+<<fig1,echo=FALSE, cache=TRUE>>=
+Nreps <- 10000
+waldcover.5 <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+waldcover.5[100*i]<-cover(5,i,Nreps,0.95)$prop.cover
+}
+waldcover.10 <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+waldcover.10[100*i]<-cover(10,i,Nreps,0.95)$prop.cover
+}
+waldcover.20 <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+waldcover.20[100*i]<-cover(20,i,Nreps,0.95)$prop.cover
+}
+
+waldcover.5.h <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+waldcover.5.h[100*i]<-cover(5,i,Nreps,0.99)$prop.cover
+}
+waldcover.10.h <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+waldcover.10.h[100*i]<-cover(10,i,Nreps,0.99)$prop.cover
+}
+waldcover.20.h <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+waldcover.20.h[100*i]<-cover(20,i,Nreps,0.99)$prop.cover
+}
+@
+
+<<wilson, echo=FALSE, cache=TRUE>>=
+Nreps<-10000
+wilsoncover.5 <- c(rep(0,99))
+for(i in seq(0.01,0.99,by=0.01)){
+wilsoncover.5[zapsmall(100*i)] <- cover.wilson(5,i,Nreps,0.95)$prop.cover
+}
+
+
+wilsoncover.10 <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+wilsoncover.10[zapsmall(100*i)]<-cover.wilson(10,i,Nreps,0.95)$prop.cover
+}
+wilsoncover.20 <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+wilsoncover.20[zapsmall(100*i)]<-cover.wilson(20,i,Nreps,0.95)$prop.cover
+}
+
+wilsoncover.5.h <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+wilsoncover.5.h[zapsmall(100*i)]<-cover.wilson(5,i,Nreps,0.99)$prop.cover
+}
+wilsoncover.10.h <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+wilsoncover.10.h[zapsmall(100*i)]<-cover.wilson(10,i,Nreps,0.99)$prop.cover
+}
+wilsoncover.20.h <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+wilsoncover.20.h[zapsmall(100*i)]<-cover.wilson(20,i,Nreps,0.99)$prop.cover
+}
+@
+
+\item {\it Figure $1$ recreated.}\\
+
+<<makeplot, echo=FALSE, fig.height=8, fig.width=8>>=
+par(mfrow=c(3,3))
+p <- seq(0.01,0.99,by=0.01)
+plot(p,waldcover.5, ylim=c(0.7,1), type="l", lty=3, main="95% CIs, n=5")
+abline(h=0.95)
+lines(p,wilsoncover.5)
+
+plot(p,waldcover.10, ylim=c(0.7,1), type="l", lty=3, main="95% CIs, n=10")
+abline(h=0.95)
+lines(p,wilsoncover.10)
+
+plot(p,waldcover.20, ylim=c(0.7,1), type="l", lty=3, main="95% CIs, n=20")
+abline(h=0.95)
+lines(p,wilsoncover.20)
+
+plot(p,waldcover.5.h, ylim=c(0.7,1), type="l", lty=3, main="99% CIs,n=5")
+abline(h=0.99)
+lines(p,wilsoncover.5.h)
+
+plot(p,waldcover.10.h, ylim=c(0.7,1), type="l", lty=3, main="99% CIs,n=10")
+abline(h=0.99)
+lines(p,wilsoncover.10.h)
+
+plot(p,waldcover.20.h, ylim=c(0.7,1), type="l", lty=3, main="99% CIs,n=20")
+abline(h=0.99)
+lines(p,wilsoncover.20.h)
+@
+
+<<builddiffs, echo=FALSE>>=
+cover.diff <- function (n1,n2,p1,p2,Nreps,confidence){
+phat1.vec<-rbinom(Nreps,n1,p1)/n1
+phat2.vec<-rbinom(Nreps,n2,p2)/n2
+wald.ci.l<-phat1.vec-phat2.vec+qnorm((1-confidence)/2)*sqrt(phat1.vec*(1-phat1.vec)/n1+phat2.vec*(1-phat2.vec)/n2)
+wald.ci.u<-phat1.vec-phat2.vec-qnorm((1-confidence)/2)*sqrt(phat1.vec*(1-phat1.vec)/n1+phat2.vec*(1-phat2.vec)/n2)
+cis <- matrix(c(wald.ci.l,wald.ci.u),nrow=Nreps,ncol=2)
+diff<-p1-p2
+prop.cover <- sum(ifelse(cis[,1]<diff & cis[,2]>diff,1,0))/Nreps
+finals <-list("waldcis"=cis,"prop.cover"=prop.cover) 
+return(finals)
+}
+@
+
+<<buildwilsondiffs, echo=FALSE>>=
+coverwilson.diff <- function (n1,n2,p1,p2,Nreps,confidence){
+ptilde1.vec<-(rbinom(Nreps,n1,p1)+1)/(n1+2)
+ptilde2.vec<-(rbinom(Nreps,n2,p2)+1)/(n2+2)
+wald.ci.l<-ptilde1.vec-ptilde2.vec+qnorm((1-confidence)/2)*
+  sqrt(ptilde1.vec*(1-ptilde1.vec)/(n1+2)+ptilde2.vec*(1-ptilde2.vec)/(n2+2))
+wald.ci.u<-ptilde1.vec-ptilde2.vec-qnorm((1-confidence)/2)*
+  sqrt(ptilde1.vec*(1-ptilde1.vec)/(n1+2)+ptilde2.vec*(1-ptilde2.vec)/(n2+2))
+cis <- matrix(c(wald.ci.l,wald.ci.u),nrow=Nreps,ncol=2)
+diff<-p1-p2
+prop.cover <- sum(ifelse(cis[,1]<diff & cis[,2]>diff,1,0))/Nreps
+finals <-list("waldcis"=cis,"prop.cover"=prop.cover) 
+return(finals)
+}
+@
+
+<<fig4,echo=FALSE, cache=TRUE>>=
+Nreps <- 10000
+walddiff.1 <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+walddiff.1[zapsmall(100*i)]<-cover.diff(20,20,i,0.1,Nreps,0.95)$prop.cover
+}
+walddiff.3 <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+walddiff.3[zapsmall(100*i)]<-cover.diff(20,20,i,0.3,Nreps,0.95)$prop.cover
+}
+walddiff.5 <- rep(0,99)
+for(i in seq(0.01,0.99,by=0.01)){
+walddiff.5[zapsmall(100*i)]<-cover.diff(20,20,i,0.5,Nreps,0.95)$prop.cover
+}
+@
+
+<<wilsondiff, echo=FALSE, cache=TRUE>>=
+Nreps<-10000
+wilsondiff.1 <- c(rep(0,99))
+for(i in seq(0.01,0.99,by=0.01)){
+wilsondiff.1[zapsmall(100*i)] <- coverwilson.diff(20,20,i,0.1,Nreps,0.95)$prop.cover
+}
+wilsondiff.3 <- c(rep(0,99))
+for(i in seq(0.01,0.99,by=0.01)){
+wilsondiff.3[zapsmall(100*i)] <- coverwilson.diff(20,20,i,0.3,Nreps,0.95)$prop.cover
+}
+wilsondiff.5 <- c(rep(0,99))
+for(i in seq(0.01,0.99,by=0.01)){
+wilsondiff.5[zapsmall(100*i)] <- coverwilson.diff(20,20,i,0.5,Nreps,0.95)$prop.cover
+}
+@
+
+\item {\it Figure $4$ recreated.}\\
+
+<<makeplotdiff, echo=FALSE, fig.width=10>>=
+par(mfrow=c(1,3))
+p <- seq(0.01,0.99,by=0.01)
+plot(p,walddiff.1, ylim=c(0.8,1), type="l", lty=3, main="95% CIs, p2=0.1, n1=n2=20", xlab="p1")
+abline(h=0.95)
+lines(p,wilsondiff.1)
+
+plot(p,walddiff.3, ylim=c(0.8,1), type="l", lty=3, main="95% CIs, p2=0.3, n1=n2=20", xlab="p1")
+abline(h=0.95)
+lines(p,wilsondiff.3)
+
+plot(p,walddiff.5, ylim=c(0.7,1), type="l", lty=3, main="95% CIs, p2=0.5, n1=n2=20", xlab="p1")
+abline(h=0.95)
+lines(p,wilsondiff.5)
+@
+
+
+\end{enumerate}
+\end{enumerate}
+
+\newpage
+
+{\Large \bf R Code}
+
+<<while, echo=TRUE,eval=FALSE>>=
+@
+
+<<next, echo=TRUE,eval=FALSE>>=
+@
+
+<<props, echo=TRUE,eval=FALSE>>=
+@
+
+<<build, echo=TRUE,eval=FALSE>>=
+@
+
+<<buildwilson, echo=TRUE,eval=FALSE>>=
+@
+
+<<fig1, echo=TRUE,eval=FALSE>>=
+@
+
+<<wilson, echo=TRUE,eval=FALSE>>=
+@
+
+<<makeplot, echo=TRUE,eval=FALSE>>=
+@
+
+<<builddiffs, echo=TRUE,eval=FALSE>>=
+@
+
+<<buildwilsondiffs, echo=TRUE,eval=FALSE>>=
+@
+
+<<fig4, echo=TRUE,eval=FALSE>>=
+@
+
+<<wilsondiff, echo=TRUE,eval=FALSE>>=
+@
+
+<<makeplotdiff, echo=TRUE,eval=FALSE>>=
+@
+
+
+  \end{document}

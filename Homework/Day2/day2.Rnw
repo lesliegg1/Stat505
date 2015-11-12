@@ -1,0 +1,128 @@
+\documentclass[12pt]{article}
+\usepackage{graphicx, verbatim, fancyvrb, setspace,listings}
+\setlength{\textwidth}{7in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{-.5in}
+\setlength{\evensidemargin}{-.5in}
+\setlength{\topmargin}{-1.5cm}
+
+
+\begin{document}
+\begin{center}
+{\Large \bf Stat 505 R Exploration }\vspace{.2in} \\
+\today \\
+Leslie Gains-Germain
+\end{center}
+
+
+<<setup, include=FALSE, cache=FALSE>>=
+opts_chunk$set(fig.width=5, fig.height=4, out.width='\\linewidth', dev='pdf', concordance=TRUE)
+options(replace.assign=TRUE,width=68, digits = 3, max.print="72",
+        show.signif.stars = FALSE)
+require(xtable)
+##require(arm)
+@
+
+
+<<options, echo=F,results='hide'>>=
+options(width=112, digits=3, max.print="72")
+@ 
+
+\begin{enumerate}
+\item  What is meant by the term ``recycling'' in R's arithmetic? \\ % end line
+  
+    {\it When R is asked to do arithmetic on vectors of different lengths, it 'recycles' the first elements of the shorter vector until it is the same length as the longer vector. }\vspace{.5cm}
+
+
+\item  You will soon be starting the first homework.  Where on your
+  computer (or in your math dept account) will the files ( an R
+  script, plots, explanations) reside?  Does your group all agree on this structure?  If not decribe the differences.  \\ % end line
+  
+    {\it I have a folder for Stat505 on my computer. In this folder, I have an individual folder for each homework where I keep all the files for that homework (Rscript, plots, etc). }\vspace{.5cm}
+
+\item  On HW1 you should use the \verb|ifelse| function.  Read
+  the help file.  Use it and the ``remainder after division''
+  function \verb|%%| to convert integers 2 through 13 into ``odd''
+  or ``even''.  Show your code and results.
+<<chunk1>>=
+x <- c(2:13)
+results <- ifelse(x %% 2 == 0, "even", "odd")
+results
+@ 
+  
+\item  For HW 0.5, you looked at the help on boxplot and made a plot of
+    tooth growth relative to two predictors. Use table to find out how
+    many animals were assigned each supplement at each dosage.  Show
+    your code and output table. 
+<<toothTable, results='asis'>>=  
+require(xtable)
+dose <- factor(ToothGrowth$dose, levels=c(0.5,1,2))
+xtable(table(dose,ToothGrowth$supp))
+@ 
+  %% if you want to get a nice latex table, use option: result=tex and
+  %% in the code put 
+  %% require(xtable) 
+  %% and then wrap xtable() around the table.
+
+\item Using the ToothGrowth data again, build a linear model to
+    assess the effects of supplement and dosage on growth.  Show your code
+    and the summary of the model you fit. Interpret the output.  How
+    big are the effects?
+<<toothModel, results='asis'>>=
+supp <- factor(ToothGrowth$supp, levels=c("VC", "OJ"))
+model0 <- lm(ToothGrowth$len ~ dose*supp)
+require(xtable)
+xtable(summary(model0))
+
+dose1 <- factor(ToothGrowth$dose, levels=c(1,0.5,2))
+model1 <- lm(ToothGrowth$len ~ dose1*supp)
+xtable(summary(model1))
+
+dose2 <- factor(ToothGrowth$dose, levels=c(2,0.5,1))
+model2 <- lm(ToothGrowth$len ~ dose2*supp)
+xtable(summary(model2))
+@     
+  {\it There is strong evidence of a difference in tooth lengths between supplements at the lowest vitamin C dose of $0.5$ mg (p-value=$0.0021$ from two-sample t-stat=$3.23$ on $54$ df. The tooth lengths of guinea pigs receiving the orange juice supplement are estimated to be $5.25$ units longer than the tooth lengths of pigs receiving the ascorbic acid supplement at a vitamin C dose of $0.5$ mg with a $95\%$ confidence interval from $1.99$ to $8.51$ units longer. There is also strong evidence of a difference in tooth length between supplements at the middle vitamin C dose of $1$ mg (p-value=$0.00059$ from two-sample t-stat=$3.651$ on $54$ df).  There is no evidence of a difference in tooth lengths between supplements at the highest vitamin C dose of $2$ mg (p-value=$0.9609$ from two-sample t-stat=$-0.049$ on $54$ df). }
+  
+  
+\item  Show the ``usual'' four diagnostic plots for the above linear
+  model.  Are any problems evident?  Save the plot as a png and as a pdf
+  file in the folder from (or parallel to \#2 above).  What are the
+  dimensions of each of the images?
+<<toothPlots, fig.width=10>>=
+## plot diagnostics for a linear model
+par(mfrow=c(1,4))  
+plot(model0)
+@      
+
+{\it I do not see any serious problems with the diagnostics. We set the images to have width 10 and height 4. Since there are four plots, each plot has width 2.5 and height 4. What are the units on these dimensions?}
+
+\item  The math department server is backed up regularly so that we
+  shouldn't all lose our saved documents.  When did  you last back up your
+  personal computer?  Have you used outside storage like
+  google, dropbox, github, or other?  Explain with regard to how you will
+  keep your work safe for this class.  In particular, if you are using
+  more than one computer, how will you transfer an partially completed
+  HW back and forth? \\ % end line
+  
+    {\it I regularly back up my important documents in the Google drive and in the storage space at Amazon. I usually use my laptop, but occasionally I transfer assignments to the school computers via email. }\vspace{.5cm}
+  
+  \item
+        To compile this file, be sure you have downloaded the package 
+        \verb+knitr+ and have \LaTeX\  installed and running.  Then there should be an icon just under the tab for this file which says \fbox{Compile PDF}. Click that and watch for any errors.
+   
+  \end{enumerate}
+  
+   
+   {\large\bf R Code Appendix}
+
+   %% comment: you shouldn't need to change this unless you relabel
+   %% the code chunks
+   
+<<ref.label='chunk1', echo=TRUE,eval=FALSE,fig.keep='none'>>=
+@   
+<<ref.label='toothTable', echo=TRUE,eval=FALSE,fig.keep='none'>>=
+@ 
+<<ref.label='toothModel', echo=TRUE,fig.keep='all'>>=
+@ 
+\end{document}

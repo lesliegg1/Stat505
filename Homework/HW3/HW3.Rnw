@@ -1,0 +1,304 @@
+\documentclass{article}
+
+  %% LaTeX margin settings:
+\setlength{\textwidth}{6.5in}
+\setlength{\textheight}{9in}
+\setlength{\oddsidemargin}{0in}
+\setlength{\evensidemargin}{0in}
+\setlength{\topmargin}{-1.5cm}
+\setlength{\maxwidth}{6.5in}
+
+\newcommand{\R}{{\sf R}}
+\newcommand{\bfbeta}{\mbox{\boldmath $\beta$}}
+\newcommand{\bfD}{\mbox{\boldmath $D$}}
+\newcommand{\bfL}{\mbox{\boldmath $L$}}
+\newcommand{\bfR}{\mbox{\boldmath $R$}}
+\newcommand{\bfmu}{\mbox{\boldmath $\mu$}}
+\newcommand{\bfV}{\mbox{\boldmath $V$}}
+\newcommand{\bfX}{\mbox{\boldmath $X$}}
+
+\newcommand{\bfy}{\mbox{\boldmath $y$}}
+\newcommand{\bfz}{\mbox{\boldmath $z$}}
+\newcommand{\bfSig}{\mbox{\boldmath $\Sigma$}}
+
+\usepackage{setspace}
+
+
+\begin{document}
+
+<<setup, include=FALSE, cache=FALSE>>=
+# this is equivalent to \SweaveOpts{...}
+opts_chunk$set(fig.width=5, fig.height=4, out.width='\\linewidth', dev='pdf', concordance=TRUE, size = 'footnotesize')
+options(replace.assign=TRUE,width=72, digits = 3, max.print="200",
+        show.signif.stars = FALSE)
+@
+%% replace = with <-
+%% R output can go to 112 characters per line before wrapping
+%% print 3 significant digits
+%% If I ask to see a big matrix or something, only show 72 lines
+
+\large
+\begin{center}
+{\Large \bf  Stat 505 Assignment 3 \vspace{.2in}} \\
+  Leslie Gains-Germain
+\end{center}
+
+\begin{doublespace}
+
+We will use data from a designed experiment in which  rats were
+exposed to one of three chemicals and given one of four
+treatments. The response is their survival time.
+
+\begin{enumerate}
+  \item Use boxplots to view the data at each combination of
+   treatment and chemical. Do there appear to be some interactions?
+     Are spreads similar in each combination?
+     
+<<plot1, echo = FALSE, out.width=".7\\linewidth">>=
+survival <- read.csv("http://www.math.montana.edu/~jimrc/classes/stat505/data/ratSurvival.csv")
+#names(survival)
+boxplot(survival$sTime~survival$trt+survival$chem)
+@      
+
+
+{\it See the boxplot above. The spreads are not similar at each combination. In general, the spread is smaller for combinations with lower average survival times. There does appear to be an interaction between treatment and chemical because the treatment effect changes across levels of the chemical. When the chemical is at level $1$, the increase in survival time between treatments $A$ and $B$ is much larger than the increase in surival time between $A$ and $B$ when the chemical is at level $3$. }
+
+\item  Without fitting a model, build the   matrix $\bfX_1$ for a main
+   effects model using just  the 12
+   unique rows of data, and label each with chemical and
+   treatment.\\
+   Give the rank of this matrix.  
+   $$ y_{ijk} = \mu + \alpha_i + \beta_j + \epsilon_{ijk},\ i =
+   1,\ldots,4, j = 1,\ldots,3,\ k = 1,\ldots,4$$
+   
+  {\it  The rank of the matrix below is $6$. }
+
+        
+<<buildmatrix1, echo=FALSE, message=FALSE>>=
+chem2 <- c(rep("I",4), rep("II",4), rep("III",4))
+trt2 <- c("A", "B", "C", "D", "A", "B", "C", "D", "A", "B", "C", "D")
+Time <- survival$sTime[1:12]
+lm.1 <- lm(Time~chem2+0)
+lm.2 <- lm(Time~trt2+0)
+#model.matrix(lm.1)
+x1 <- cbind(1,model.matrix(lm.1),model.matrix(lm.2))
+rownames(x1) <- c("1A", "1B", "1C", "1D", "2A", "2B", "2C", "2D", "3A", "3B", "3C", "3D")
+x1
+@
+   
+ \item  Again, without fitting, build the additional columns needed
+   for a full interaction model. We'll call this
+   one  $\bfX_2$.  Label each 
+   row and give its rank. Is  
+    $\bfX_1$ contained in the columnspace
+   of  $\bfX_2$?  If not, 
+   demonstrate why not, if so, find a matrix to multiply
+   by  $\bfX_2$  to get   $\bfX_1$.
+   
+{\it The rank of $\bfX_2$ is $12$. $\bfX_1$ is contained in the columnspace of $\bfX_2$. We simply multiply $\bfX_2$ by $\bfX_1$ and we get $\bfX_1$ back.} 
+   
+   
+<<buildmatrix2, echo=FALSE>>= 
+x2 <- diag(12)
+rownames(x2) <- c("1A", "1B", "1C", "1D", "2A", "2B", "2C", "2D", "3A", "3B", "3C", "3D")
+x2
+@  
+   
+ \item  What is the rank of combined matrix $\bfX =
+   [\bfX_1\ \ \bfX_2]$?
+   
+{\it The rank  of the combined matrix $\bfX$ is $12$.}
+
+ \item  How many columns must we remove from  $\bfX$ to get a full
+   column rank matrix?  It does matter which columns we remove
+     Explain at least two choices for removal which still allow
+   us to estimate all cell means, and one which does not work.
+   For the non-working one, what is the rank of the remaining columns? 
+   Explain how this relates to the information in the class notes on p 17 about
+   non-estimable constraints.
+   
+{\it We must remove $8$ columns from $\bfX$ to get a full column rank matrix. It does matter which columns we remove. We could remove the ``chem1" and ``trtA" columns from $\bfX_1$, and the first six columns of $\bfX_2$. Or, we could remove the ``chem3" and ``trtD" columns for $\bfX_1$, and the last six columns of $\bfX_2$. It would not work to remove the ``chem1" and ``chem2" columns from $\bfX_1$ and the first six columns of $\bfX_2$. If we did that, the rank of the remaining columns would be $11$. The whole reason we apply constraints, as you explain on page $17$ of the notes, is so we can ``obtain a reparametrized design matrix, $\bfX^*$, which is of full column rank''. We apply constraints to make $\bf{X}$ full column rank so that $\bfX^T\bfX$ is invertible and we can find least squares estimates for $\bf\hat{\beta}$. Although the constraints are not unique, we do need to choose our constraints appropriately so that the constrained $\bfX$ matrix is of full column rank.}
+
+
+ \item  Use the Moore-Penrose generalized inverse to estimate cell
+   means (you'll have to scale up to use all the data now).
+   
+<<scaleup, echo=FALSE, message=FALSE>>=
+lm.3 <- lm(survival$sTime~survival$chem+0)
+lm.4 <- lm(survival$sTime~survival$trt+0)
+#model.matrix(lm.1)
+x3 <- cbind(1,model.matrix(lm.3),model.matrix(lm.4))
+a1 <- c(rep(1,4),rep(0,44))
+a2 <- c(rep(0,4),rep(1,4),rep(0,40))
+a3 <- c(rep(0,8),rep(1,4),rep(0,36))
+a4 <- c(rep(0,12),rep(1,4),rep(0,32))
+a5 <- c(rep(0,16),rep(1,4),rep(0,28))
+a6 <- c(rep(0,20),rep(1,4),rep(0,24))
+a7 <- c(rep(0,24),rep(1,4),rep(0,20))
+a8 <- c(rep(0,28),rep(1,4),rep(0,16))
+a9 <- c(rep(0,32),rep(1,4),rep(0,12))
+a10 <- c(rep(0,36),rep(1,4),rep(0,8))
+a11 <- c(rep(0,40),rep(1,4),rep(0,4))
+a12 <- c(rep(0,44),rep(1,4))
+a <- cbind(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12)
+x6 <- cbind(x3,a)
+#lm.fit1 <- lm(sTime~chem*trt+0, data=survival)
+#m <- cbind(1,model.matrix(lm.fit1))
+require(MASS)
+paramestimates <- ginv(crossprod(x6))%*%t(x6)%*%survival$sTime
+cellmeans <- x6%*%ginv(crossprod(x6))%*%t(x6)%*%survival$sTime
+t(paramestimates)
+@
+
+{\it The output above shows our parameter estimates. The output below shows the estimates of our cell means.}
+
+<<means, echo=FALSE>>=
+cellmeans[seq(from=1,to=48,by=4)]
+@
+
+
+
+
+   
+ \item  Demonstrate that this estimate differs from the usual
+   interaction model fit by \verb|lm|, and that cell mean
+   estimates are the same.
+   
+   
+<<lmint, echo=FALSE, results='asis', message=FALSE>>=
+lm.int <- lm(sTime~chem*trt, data=survival) 
+require(xtable)
+xtable(summary(lm.int))
+@
+
+
+{\it Above are the parameter estimates from the interaction model fit with lm. We can see that the parameter estimates differ from those above. The cell means (printed below) are the same.}
+
+<<fitted, echo=FALSE, message=FALSE>>=
+fitted(lm.int)[seq(1,48,4)]
+@
+
+\end{enumerate}
+
+\newpage
+
+\begin{center}
+  {\large\bf Report on Survival of Rats}
+\end{center}
+
+{\bf \large Introduction}
+
+{\it Rats were exposed to one of three chemicals and one of four treatments. Their survival times were recorded.}
+
+{\bf \large Statistical Procedures}
+
+{\it I first looked at the boxplots of survival rates for each treatment combination. As I mentioned above, I saw that those groups with smaller average survival rates also had smaller spread. This pattern indicates that a transformation of the response variable may be a appropriate, so I did a boxcox procedure and chose to model the reciprocals of the survival times. 
+
+<<boxcox, echo=FALSE, out.width=".5\\linewidth">>=
+require(MASS)
+fit.boxcox <- lm(sTime ~ chem * trt, data = survival) 
+boxcox(fit.boxcox)
+timet <- survival$sTime^-1
+fit.trans <- lm(timet ~ chem*trt, data=survival)
+fit.add <- lm(timet~chem+trt, data=survival)
+@
+
+I then looked at the interaction plot of mean reciprocal survival times. The lines in the interaction plot are mostly parallel, so it appears that the change in the mean reciprocal survival times between treatments does not depend on the level of the chemical. Just to be sure, however, I fit the interaction model. Before using this model for inference, I checked the diagnostic plots and found no problems with the assumptions. As I suspected, I found no evidence of a two-factor interaction between treatment and chemical (p-value$=.3867$ from F-stat=$1.09$ on $6$ and $36$ df).
+
+<<plotss, echo=FALSE, out.width=".5\\linewidth">>=
+with(survival,interaction.plot(chem,trt,timet))
+@
+
+<<summary, echo=FALSE, results='asis'>>=
+require(xtable)
+xtable(anova(fit.trans))
+@
+
+Note that in the plots below I do not see a linear relationship in the reciprocal survival times across levels of either explanatory variable. For this reason, I am choosing to treat chemical and treatment both as factors.
+
+
+<<plots, echo=FALSE,out.width=".5\\linewidth">>=
+par(mfrow=c(1,2))
+plot(timet~trt, data=survival)
+plot(timet~chem, data=survival)
+@
+
+
+I chose to use the additive model for inference. The diagnostic plots are shown below. Again, I see no problems with the model assumptions.} 
+
+
+<<resids, echo=FALSE, fig.width=10>>=
+par(mfrow=c(1,4))
+plot(fit.add)
+@
+
+{\it Below is the additive model summary and the ANOVA.}
+
+<<sum, echo=FALSE, results='asis'>>=
+require(xtable)
+xtable(summary(fit.add))
+xtable(anova(fit.add))
+@
+
+
+{\bf \large Summary of Findings}
+
+{\it There is strong evidence that the mean reciprocal survival time of these rats depends on type of chemical (p-value$<0.0001$ from F-stat=$71.71$ on $2$ and $42$ df). The mean reciprocal survival time for rats receiving chemical I and treatment A is estimated to be $2.70$ with an estimated $95\%$ confidence interval from $2.35$ to $3.05$. At a fixed treatment level, the mean reciprocal survival time is estimated to increase by $0.4686$ for a change from chemical I to chemical II, with an associated $95\%$ confidence interval from $0.117$ to $0.820$. The mean reciprocal survival time is estimated to increase by $2.0$ for a change from chemical I to chemical III, with a $95\%$ confidence interval from $1.64$ to $2.35$. 
+
+There is also strong evidence that the mean reciprocal survival time of these rats depends on treatment (p-value$<0.0001$ from F-stat=$27.98$ on $3$ and $42$ df). At a fixed chemical level, the mean reciprocal survival time is estimated to decrease by $1.66$ for a change in treatment from A to B, with a $95\%$ confidence interval from a $2.06$ to a $1.25$ decrease. The mean reciprocal survival time is estimated to decrease by $0.57$ for a change in treatment from A to C, with a $95\%$ confidence interval from a $0.98$ to a $0.16$ decrease. The mean reciprocal survival time is estimated to decrease by $1.36$ for a change in treatment from A to D, with a $95\%$ confidence interval from a $1.76$ to a $0.95$ decrease.
+
+Note that the mean reciprocal survival time can be thought of as a speed to death so that the smaller the mean reciprocal survival time (speed to death), the longer the survival time.}
+
+{\bf \large Scope of Inference}
+
+{\it Rats were not randomly selected from a larger population of rats, so inference does not extend beyond the rats in the study.
+
+As far as we know, rats were not randomly assigned to type of chemical or treatment level, so we cannot establish a causal relationship between treatments and survival times.
+}
+
+\end{doublespace}
+
+\begin{center}
+  {\large\bf R Code}
+\end{center}
+
+<<plot1, eval=FALSE, echo=TRUE>>=
+@      
+
+<<buildmatrix1, eval=FALSE, echo=TRUE>>=
+@
+
+<<buildmatrix2, eval=FALSE, echo=TRUE>>=
+@
+
+<<scaleup, eval=FALSE, echo=TRUE>>=
+@
+
+<<means, eval=FALSE, echo=TRUE>>=
+@
+
+<<lmint, eval=FALSE, echo=TRUE>>=
+@
+
+<<fitted, eval=FALSE, echo=TRUE>>=
+@
+
+<<boxcox, eval=FALSE, echo=TRUE>>=
+@
+
+<<plots, eval=FALSE, echo=TRUE>>=
+@
+
+<<summary, eval=FALSE, echo=TRUE>>=
+@
+
+<<plots, eval=FALSE, echo=TRUE>>=
+@
+
+<<resids, eval=FALSE, echo=TRUE>>=
+@
+
+<<sum, eval=FALSE, echo=TRUE>>=
+@
+
+  \end{document}
